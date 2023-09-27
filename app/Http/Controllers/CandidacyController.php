@@ -36,7 +36,7 @@ class CandidacyController extends Controller
                 foreach ($rows as $row) {
                     /*   $charged_msisdn = Charged_Account::create($row); */
                     info($row);
-                    $charged_msisdn = Candidacy::create([
+                    $charged_msisdn = Candidacy::upsert([
                         'post_work_id' => $row['post_work_id'],
                         'form_id' => $row['formulaire_dinscriptionbourseubora_id'],
                         'form_submited_at' => $row['created_on'],
@@ -71,7 +71,7 @@ class CandidacyController extends Controller
                         'attestation_de_reussite_derniere_annee' => $row['attestation_derussitedeladernireannedtude'],
                         'user_last_login' => $row['user_last_login'],
 
-                    ]);
+                    ],['post_work_id'], ['form_id']);
                 }
             });
             // 5. On supprime le fichier uploadé
@@ -128,26 +128,19 @@ class CandidacyController extends Controller
     public function getAllCandidacies(Request $r){
 
         try {
-            $candidacies = Candidacy::select('candidats.*','preselections.pres_validation as preselection','evaluationsfinales.total as totalNotes')
+            $candidacies = Candidacy::select('candidats.*','preselections.pres_validation as preselection')
             ->leftJoin('preselections','candidats.id','=', 'preselections.candidature')
-            ->leftJoin('evaluationsfinales','candidats.id','=', 'evaluationsfinales.candidature')
             ->get();
 
-            foreach($candidacies as $candidacy){
-               /*  foreach($candidacy->totalNotes as $noteTotale){
-                  $sommeTotaleNotes += $noteTotale;
-                  $candidacy->sommeTotaleNotes =$sommeTotaleNotes
-                } */
+            $evaluations = EvaluationFinale::select('id','candidature','total')->get();
 
+            $candidacies = $this->calulateAverage( $candidacies,$evaluations);
 
-                info($candidacy->id);
-                info(gettype($candidacy->totalNotes)); 
-                info("_____________________________________");
-            }
             return response()->json([
                 'code' => 200,
                 'description' => 'Success',
-                'candidacies' => $candidacies
+                'candidacies' => $candidacies,
+                /* 'evaluations' => $evaluations */
 
             ]);
         } catch (\Throwable $th) {
@@ -225,18 +218,27 @@ class CandidacyController extends Controller
                 ->orWhere('candidats.evaluateur2','=',$r->userId)
                 ->orWhere('candidats.evaluateur3','=',$r->userId)
                 ->get();
-            }elseif($r-> userProfile == 'Admin'){
+
+                $evaluations = EvaluationFinale::select('id','candidature','total')->get();
+
+            }elseif($r-> userProfile == 'Admin' || $r-> userProfile == 'Lecteur'){
                 $candidacies = Candidacy::select('candidats.*','preselections.pres_validation as preselection')
                 ->join('preselections','candidats.id','=', 'preselections.candidature')
                 ->where('preselections.pres_validation','=',true)
                 ->get();
+
+                $evaluations = EvaluationFinale::select('id','candidature','total')->get();
+
             }
+
+            $candidacies = $this->calulateAverage( $candidacies,$evaluations);
            
 
             return response()->json([
                 'code' => 200,
                 'description' => 'Success',
-                'candidacies' => $candidacies
+                'candidacies' => $candidacies,
+                /* 'evaluations' => $evaluations */
 
             ]);
         } catch (\Throwable $th) {
@@ -250,6 +252,29 @@ class CandidacyController extends Controller
         }
     }
 
+
+    private function calulateAverage($candidacies,$evaluations){
+
+        foreach($candidacies as $c){
+            $noteTotale = 0;
+            $nbrEv = 0;
+            foreach ($evaluations as $ev){
+                
+                if($ev->candidature == $c->id){
+                    $nbrEv += 1;
+                    $noteTotale += $ev->total;
+                    $moyenne = $noteTotale/$nbrEv;
+                    $c->moyenne = $moyenne;  
+                }
+            
+             
+             $c->evaluations_effectuées =$nbrEv;
+            }
+        }
+
+        return $candidacies;
+
+    }
 
     public function getCandidacy(Request $r){
         try {           
@@ -273,7 +298,7 @@ class CandidacyController extends Controller
                                     ->where('evaluateur','=',$r->userId)
                                     ->join('users','evaluationsfinales.evaluateur','=','users.id')->get();
                 $evaluateursSelect = User::select('id','fullname')->where('profil','evaluateur')->get();
-            }elseif($r-> userProfile == 'Admin'){
+            }elseif($r-> userProfile == 'Admin' || $r-> userProfile == 'Lecteur' ){
                 $candidacy = Candidacy::where('candidats.id',$r->candidacyId)->first();
                 $preselection = Preselection::where('candidature',$r->candidacyId)->first();
                 $evaluationFinale = EvaluationFinale::select('evaluationsfinales.*','users.fullname as evaluateurName')->where('candidature',$r->candidacyId)->join('users','evaluationsfinales.evaluateur','=','users.id')->get();

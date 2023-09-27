@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -14,6 +15,8 @@ class Candidacy extends Model
      *
      * @var array<int, string>
      */
+
+    
     protected $fillable = [
     'post_work_id', 
     'form_id',
@@ -51,6 +54,8 @@ class Candidacy extends Model
     'evaluateur2',
     'evaluateur3'
     ];
+
+    protected $attribute = ['moyenne','evaluations_effectuées'];
 
     protected $table = 'candidats';
 }

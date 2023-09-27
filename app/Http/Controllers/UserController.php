@@ -83,9 +83,9 @@ class UserController extends Controller
             /*  info(Auth::user()->cuid . 'is saving user.'); */
 
 
-            $user = User::create([
-                "cuid" =>  $r->cuid,
-                "profil" => $r->profile
+            $user = User::updateOrCreate([
+                "cuid" =>  $r->cuid],
+                ["profil" => $r->profile
             ]);
 
 
