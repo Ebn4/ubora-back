@@ -83,31 +83,26 @@ class UserController extends Controller
             /*  info(Auth::user()->cuid . 'is saving user.'); */
 
 
-            $user = User::updateOrCreate([
-                "cuid" =>  $r->cuid],
-                ["profil" => $r->profile
+            $user = User::updateOrCreate(
+                [
+                    "cuid" =>  $r->cuid
+                ],
+                [
+                    "profil" => $r->profile
+                ]
+            );
+
+
+
+
+            info('user saved: ' . $r->cuid);
+
+            /* return redirect()->route('users')->with("action_success", 'Utilisateur enregistré')->with('modal', true); */
+            return response()->json([
+                'code' => 200,
+                'description' => "Success",
+                'message' => "Utilisateur enregistré"
             ]);
-
-
-           
-            if ($user->id) {
-                info('user saved: ' . $r->cuid);
-
-                /* return redirect()->route('users')->with("action_success", 'Utilisateur enregistré')->with('modal', true); */
-                return response()->json([
-                    'code' => 200,
-                    'description' => "Success",
-                    'message' => "Utilisateur enregistré"
-                ]);
-            } else {
-
-                /* return redirect()->route('users')->with("action_error", "Erreur lors de l'enregistrement")->with('modal', true); */
-                return response()->json([
-                    'code' => 400,
-                    'description' => "Erreur interne du serveur",
-                    'message' => "Erreur lors de l'enregistrement"
-                ]);
-            }
         } catch (\Throwable $th) {
             Log::error($th->getMessage());
             return response()->json([
@@ -175,7 +170,7 @@ class UserController extends Controller
     public function deleteUser(Request $r)
     {
         try {
-           
+
             $user = User::destroy($r->id);
             return response()->json([
                 'code' => 200,
