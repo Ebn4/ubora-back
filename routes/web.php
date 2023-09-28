@@ -14,5 +14,5 @@ use App\Http\Controllers\LoginController;
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    return ('Welcome, This is the backend service for ubora assessments app.');
 });
