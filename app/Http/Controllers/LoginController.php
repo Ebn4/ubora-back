@@ -21,21 +21,21 @@ class LoginController extends Controller
     public function Login(Request $req)
     {
         try {
-           
+
             //on recupère le cuid et la mot de passe entrés par l'utilisateurs dans la requète
             $cuid = $req->cuid;
             $password = $req->password;
-           
+
             //vérification que si l'utilisateur est dans la BD de l'application
             $user = $this->checkUser($cuid);
             info($user);
-          
+
             if ($user == 'erreur') {
                 //s'il y a une erreur lors de la vérificatin
                 $loginstatus =  'check-user-error';
                 Log::info($loginstatus);
                 return $this->responseBuilder($loginstatus);
-            } else if (empty($user)){
+            } else if (empty($user)) {
                 //si l'objet est vide, on a pas trouvé le cuid dans la BDD de l'application
                 $loginstatus = 'check-user-failed';
                 Log::info($loginstatus);
@@ -89,7 +89,7 @@ class LoginController extends Controller
 
                 ];
 
-                
+
                 if ($this->ldap['REQSTATUS'] == "SUCCESS") {
                     // si l'authentification a réussi on appel la fonction pour update l'utilisateurs si c'est sa prmière connexion ou si il y a des changements ldap
                     $loginstatus = 'ldap-auth-success';
@@ -112,7 +112,7 @@ class LoginController extends Controller
                     Log::info($loginstatus);
                     return $this->responseBuilder($loginstatus);
                 } else {
-                     //l'authentification a échoué
+                    //l'authentification a échoué
                     $loginstatus = 'ldap-auth-failed';
                     Log::info($loginstatus);
                     return $this->responseBuilder($loginstatus);
@@ -150,12 +150,13 @@ class LoginController extends Controller
     {
         if ($user->password == "" || $user->fullname == "" || $user->description == "" ||  $user->email == "" || $user->msisdn == "") {
             try {
+                
                 $udpateduser = User::where('cuid', $user->cuid)
                     ->update([
                         'fullname' => $ldap['FULLNAME'],
                         'description' => $ldap['DESCRIPTION'],
                         'email' => $ldap['EMAIL'],
-                        'phonenumber' => $ldap['PHONENUMBER'],
+                        'phonenumber' =>  str_replace(' ', '', $ldap['PHONENUMBER']),
                         'pass' =>  Hash::make(Str::random(10))
                     ]);
                 Log::info($udpateduser);
@@ -181,21 +182,23 @@ class LoginController extends Controller
         }
     }
 
-    
+
     //Generation et envoi du code OTP
     private function sendOtp($ldap)
     {
         $msisdn = $ldap["PHONENUMBER"];
         $msisdn = str_replace(' ', '', $msisdn);
         $msisdn = substr($msisdn, -9);
+        $msisdn =  '0' . $msisdn . '';
 
         $_SESSION['phonenumber'] = $msisdn;
-        $_SESSION['fullphonenumber'] = $ldap["PHONENUMBER"];
+        
+      /*   $_SESSION['email'] = $ldap["EMAIL"]; */
 
         $client = new Client;
 
-        $body = json_encode([
-            "reference" => '0' . $msisdn . '',
+        /*         $body1 = json_encode([
+            "reference" => $msisdn,
             "origin"  => "Ubora Assessments",
             "receivedOtp"  => "",
             "otpOveroutTime"  => 300000,
@@ -204,36 +207,98 @@ class LoginController extends Controller
 
         ]);
 
+        $body2 = json_encode([
+            "reference" => $ldap["EMAIL"],
+            "origin"  => "Ubora Assessments",
+            "receivedOtp"  => "",
+            "otpOveroutTime"  => 300000,
+            "customMessage"  => "",
+            "senderName"  => "Ubora Assessments"
+
+        ]);
+
+
+
         $headers = [
             'Content-Type' => 'application/json',
-        ];
+        ]; */
 
         try {
 
-            $res = $client->request('POST', config('settings.otp_generate'), [
+            /*   $res = $client->request('POST', config('settings.otp_generate'), [
                 'headers' => $headers,
-                'body' => $body
+                'body' => $body1
             ]);
 
             $content = $res->getBody()->getContents();
-            Log::info("OTP generate API" . json_encode($content) . '');
+            Log::info("OTP generate API:" . json_encode($content) . ''); */
 
-            if (!empty($content)) {
-                $content = json_decode($content, true);
+            $content = $this->sendOtpRequest($msisdn, 'Ubora Assessments');
+            info($content);
+            if ($content["code"] == 200) {
+                //log message
+                $_SESSION['reference'] = $msisdn;
+                $_SESSION['senderName']= 'Ubora Assessments';
+                return 'OTP-generate-sucess';
+            } elseif ($content["code"] == 400) {
+
+                $content = $this->sendOtpRequest($ldap["EMAIL"], 'ubora.otp@orange.com');
+
                 if ($content["code"] == 200) {
-                    //log message
+                    $_SESSION['reference'] = $ldap["EMAIL"];
+                    $_SESSION['senderName']= 'ubora.otp@orange.com';
                     return 'OTP-generate-sucess';
-                } elseif ($content["code"] == 400) {
-                    //log message
+                } else {
                     return 'OTP-generate-failed';
                 }
-            } else {
-                return 'OTP-not-found';
-            }
+            } else {return $content;}
         } catch (\Exception $e) {
             Log::error($e->getMessage());
             return "OTP-error";
         }
+    }
+
+
+    private function sendOtpRequest($reference, $senderName)
+    {
+        try {
+            $body1 = json_encode([
+                "reference" => $reference,
+                "origin"  => $senderName,
+                "receivedOtp"  => "",
+                "otpOveroutTime"  => 300000,
+                "customMessage"  => "",
+                "senderName"  => $senderName
+    
+            ]);
+    
+            $headers = [
+                'Content-Type' => 'application/json',
+            ];
+    
+            $client = new Client;
+    
+            $res = $client->request('POST', config('settings.otp_generate'), [
+                'headers' => $headers,
+                'body' => $body1
+            ]);
+    
+            info($body1);
+    
+            $content = $res->getBody()->getContents();
+            Log::info("OTP generate API:" . json_encode($content) . '');
+            if (!empty($content)) {
+                $content = json_decode($content, true);
+                return $content;
+            } else {
+                return 'OTP-not-found';
+            }
+        } catch (\Throwable $th) {
+           Log::error($th->getMessage());
+           $content['code'] = 400;
+           return  $content;
+        }
+        
     }
 
 
@@ -242,19 +307,20 @@ class LoginController extends Controller
     {
         //on recupère le code dans la requête
         $userOtp = $req->all();
-        info($userOtp['phonenumber']);
+        info($userOtp['reference']);
+        info($userOtp['senderName']);
 
-        $msisdn = $userOtp['phonenumber'];
-        $msisdn = str_replace(' ', '', $msisdn);
-        $msisdn = substr($msisdn, -9);
+        $reference = $userOtp['reference'];
+       /*  $msisdn = str_replace(' ', '', $msisdn);
+        $msisdn = substr($msisdn, -9); */
 
         // la requête pour vérififer le code
         $client = new Client;
         $body = json_encode([
-            "reference" => '0' .$msisdn. '',
-            "origin"  => "Ubora Assessments",
+            "reference" =>  $reference ,
+            "origin"  => $userOtp['senderName'],
             "receivedOtp"  => $userOtp['userOtp'],
-            "senderName"  => "Ubora Assessments"
+            "senderName"  => $userOtp['senderName']
 
         ]);
 
@@ -277,17 +343,18 @@ class LoginController extends Controller
                 // si la vérification est réussie on authentifie l'utilisateur: récuperer ses info en BDD 
                 if ($content['diagnosticResult'] == true) {
                     $user = new User;
-                    $user = User::where('phonenumber', '=',  $userOtp['phonenumber'])
+                    $user = User::where('phonenumber', '=', substr_replace($userOtp['reference'],'+243',0,1))
+                        ->orWhere('email','=',$userOtp['reference'])
                         ->first();
                     info($user);
                     if (!empty($user)) {
 
                         //déconnecter les autres sessions
-                     /*    Auth::logoutOtherDevices($user->pass); */
+                        /*    Auth::logoutOtherDevices($user->pass); */
                         Auth::login($user);
                         $req->session()->regenerate();
                         $status = 'user-logged';
-                    /*     Log::info(Auth::user()->cuid); */
+                        /*     Log::info(Auth::user()->cuid); */
                         Log::info($status);
                         return response()->json([
                             'code' => 200,
@@ -295,28 +362,27 @@ class LoginController extends Controller
                             'message' => "Login Success",
                             'user' => $user
                         ]);
-
                     } else {
 
                         //on ne retrouve pas l'utilisateur en BDD
                         $status = 'user-loggin-failed';
                         info($status);
-                        return $this->responseBuilder( $status); 
-                     /*    return  redirect()->route('login')->with("auth_error", "Vous n'êtes pas autorisé à utiliser l'application"); */
+                        return $this->responseBuilder($status);
+                        /*    return  redirect()->route('login')->with("auth_error", "Vous n'êtes pas autorisé à utiliser l'application"); */
                     }
                 } else {
                     // la verficatio OTP a échouée;
                     $status = 'OTP-check-failed';
-                    return $this->responseBuilder( $status);
-                  /*   return  redirect()->route('/')->with("auth_error", "Code OTP Invalide"); */
+                    return $this->responseBuilder($status);
+                    /*   return  redirect()->route('/')->with("auth_error", "Code OTP Invalide"); */
                 }
             }
         } catch (\Exception $e) {
             $error = $e->getMessage();
             Log::error($e->getMessage());
             $status = "OTP-check-error";
-            return $this->responseBuilder( $status);
-            /* return  redirect()->route('login')->with("auth_error", "Erreur interne du serveur") */;
+            return $this->responseBuilder($status);
+                /* return  redirect()->route('login')->with("auth_error", "Erreur interne du serveur") */;
         }
     }
 
@@ -374,7 +440,8 @@ class LoginController extends Controller
                     'code' => 200,
                     'description' => "Success",
                     'message' => "OTP Code generated successfully",
-                    'phonenumber' => $_SESSION['fullphonenumber']
+                    'reference' => $_SESSION['reference'],
+                    'senderName' => $_SESSION['senderName']
                 ]);
                 break;
 
