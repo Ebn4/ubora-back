@@ -233,7 +233,7 @@ class LoginController extends Controller
             $content = $res->getBody()->getContents();
             Log::info("OTP generate API:" . json_encode($content) . ''); */
 
-            $content = $this->sendOtpRequest($msisdn, 'Ubora Assessments');
+            $content = $this->sendOtpRequest($ldap["PHONENUMBER"], 'Ubora Assessments');
             info($content);
             if ($content["code"] == 200) {
                 //log message
