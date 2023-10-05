@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use App\Models\User;
+
 
 class UserController extends Controller
 {
@@ -81,11 +83,11 @@ class UserController extends Controller
 
         try {
             /*  info(Auth::user()->cuid . 'is saving user.'); */
-
+            $cuid = Str::upper($r->cuid);
 
             $user = User::updateOrCreate(
                 [
-                    "cuid" =>  $r->cuid
+                    "cuid" =>  $cuid
                 ],
                 [
                     "profil" => $r->profile
@@ -123,12 +125,12 @@ class UserController extends Controller
         try {
 
 
-
+            $cuid = Str::upper($r->cuid);
 
             $user = User::find($r->id);
             /*  info(Auth::user()->cuid . 'is updating user' . $user->cuid); */
 
-            $user->cuid = $r->cuid;
+            $user->cuid = $cuid;
             $user->profil = $r->profile;
             $saved = $user->save();
 
