@@ -334,6 +334,7 @@ class LoginController extends Controller
                 'headers' => $headers,
                 'body' => $body
             ]);
+            info($body);
 
             $content = $res->getBody()->getContents();
             $content = (array) json_decode($content);
@@ -346,7 +347,7 @@ class LoginController extends Controller
                     $user = User::where('phonenumber', '=', substr_replace($userOtp['reference'],'+243',0,1))
                         ->orWhere('email','=',$userOtp['reference'])
                         ->first();
-                    info($user);
+                  /*   info($user); */
                     if (!empty($user)) {
 
                         //déconnecter les autres sessions
