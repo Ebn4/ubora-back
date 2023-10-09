@@ -340,14 +340,24 @@ class CandidacyController extends Controller
 
     public function deleteCandidacy(Request $r){
         try {
-           
-            $user = Candidacy::destroy($r->candidacyId);
+           info($r);
+            DB::transaction(function () use ($r){
+               $preselection= DB::table('preselections')->where('candidature',$r->candidacyId)->delete();
+                $evaluation = DB::table('evaluationsfinales')->where('candidature', $r->candidacy)->delete();
+               $candidacy = Candidacy::destroy($r->candidacyId);
+
+               info($preselection);
+               info( $evaluation);
+               info($candidacy);
+            });
+            
             return response()->json([
                 'code' => 200,
                 'description' => 'Success',
                 'message' => "Candidature supprimée",
 
             ]);
+            
         } catch (\Throwable $th) {
             Log::error($th->getMessage());
 
@@ -358,4 +368,6 @@ class CandidacyController extends Controller
             ]);
         }
     }
+
+
 }
