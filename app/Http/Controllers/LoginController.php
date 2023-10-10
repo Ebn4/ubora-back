@@ -135,6 +135,7 @@ class LoginController extends Controller
     private function checkUser($cuid)
     {
         try {
+            $cuid = str_replace(' ','',$cuid);
             $user = User::where('cuid', $cuid)
                 ->first();
             return $user;

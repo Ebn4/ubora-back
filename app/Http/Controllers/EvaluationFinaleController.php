@@ -54,6 +54,25 @@ class EvaluationFinaleController extends Controller
        
         try {
             
+            info("creating evaluation");
+            $userId= $r->userId;
+            $chekEvaluateur =  Candidacy::where('id','=',$r->candidacyId)
+            ->where(function($query) use($userId){
+                $query->where('evaluateur1','=',$userId)
+                ->orWhere('evaluateur2','=',$userId)
+                ->orWhere('evaluateur3','=',$userId);
+            })->count();
+
+
+            info($chekEvaluateur);
+
+            if($chekEvaluateur <= 0){
+                return response()->json([
+                    'code' => 401,
+                    'description' => "Error",
+                    'message' => "Vous n'êtes pas autorisé à évaluer cette candidature"
+                ]);
+            }
             $evaluation = EvaluationFinale::create([
                 'evaluateur' => $r->evaluateur,
                 'candidature'  => $r->candidacyId,
@@ -95,6 +114,26 @@ class EvaluationFinaleController extends Controller
 
     public function updateEvaluationFinale(Request $r){
         try {
+            info("updating evaluation");
+            $userId= $r->userId;
+            $chekEvaluateur =  Candidacy::where('id','=',$r->candidacyId)
+            ->where(function($query)use($userId){
+                $query->where('evaluateur1','=',$userId)
+                ->orWhere('evaluateur2','=',$userId)
+                ->orWhere('evaluateur3','=',$userId);
+            })->count();
+
+
+            info($chekEvaluateur);
+
+            if($chekEvaluateur <= 0){
+                return response()->json([
+                    'code' => 401,
+                    'description' => "Error",
+                    'message' => "Vous n'êtes pas autorisé à évaluer cette candidature"
+                ]);
+            }
+            
             $evaluation = EvaluationFinale::find($r->evaluationId);
 
             $evaluation->critere_doss_academique = $r->crt_doss_academique;
