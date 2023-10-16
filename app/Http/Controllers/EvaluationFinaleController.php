@@ -64,7 +64,7 @@ class EvaluationFinaleController extends Controller
             })->count();
 
 
-            info($chekEvaluateur);
+           
 
             if($chekEvaluateur <= 0){
                 return response()->json([
@@ -80,6 +80,7 @@ class EvaluationFinaleController extends Controller
                 'critere_lettre_motivation' => $r->crt_lettre_motivation,
                 'critere_communication_skills'=> $r->crt_communication_skills,
                 'critere_cv'=> $r->crt_cv,
+                'commentaire'=> $r->commentaire,
                 'total'=>($r->crt_doss_academique + $r->crt_lettre_motivation + $r->crt_communication_skills + $r->crt_cv),
             ]);
 
@@ -123,9 +124,6 @@ class EvaluationFinaleController extends Controller
                 ->orWhere('evaluateur3','=',$userId);
             })->count();
 
-
-            info($chekEvaluateur);
-
             if($chekEvaluateur <= 0){
                 return response()->json([
                     'code' => 401,
@@ -141,6 +139,7 @@ class EvaluationFinaleController extends Controller
             $evaluation->critere_communication_skills = $r->crt_communication_skills;
             $evaluation->critere_cv = $r->crt_cv;
             $evaluation->total = ($r->crt_doss_academique+$r->crt_lettre_motivation+$r->crt_communication_skills+$r->crt_cv);
+            $evaluation->commentaire = $r->commentaire;
             $saved =$evaluation->save();
 
             if ($saved == true) {

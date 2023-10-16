@@ -219,7 +219,7 @@ class CandidacyController extends Controller
                 ->orWhere('candidats.evaluateur3','=',$r->userId)
                 ->get();
 
-                $evaluations = EvaluationFinale::select('id','candidature','total')->get();
+                $evaluations = EvaluationFinale::select('id','candidature','total')->where('evaluateur',$r->userId)->get();
 
             }elseif($r-> userProfile == 'Admin' || $r-> userProfile == 'Lecteur'){
                 $candidacies = Candidacy::select('candidats.*','preselections.pres_validation as preselection')
@@ -238,7 +238,7 @@ class CandidacyController extends Controller
                 'code' => 200,
                 'description' => 'Success',
                 'candidacies' => $candidacies,
-                /* 'evaluations' => $evaluations */
+                'evaluations' => $evaluations
 
             ]);
         } catch (\Throwable $th) {

@@ -16,6 +16,7 @@ class EvaluationFinale extends Model
         'critere_lettre_motivation',
         'critere_communication_skills',
         'critere_cv',
+        'commentaire',
         'total',
        
     ];
