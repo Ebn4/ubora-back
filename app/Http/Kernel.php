@@ -23,6 +23,7 @@ class Kernel extends HttpKernel
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
         \App\Http\Middleware\SecurityHeaders::class,
         \App\Http\Middleware\RequestsLogs::class,
+        \Spatie\Csp\AddCspHeaders::class,
        
     ];
 
@@ -48,6 +49,7 @@ class Kernel extends HttpKernel
             'throttle:api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \Illuminate\Session\Middleware\StartSession::class,
+            \Spatie\Csp\AddCspHeaders::class,
         ],
     ];
 
