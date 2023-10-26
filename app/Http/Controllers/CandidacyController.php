@@ -302,7 +302,7 @@ class CandidacyController extends Controller
                 $candidacy = Candidacy::where('candidats.id',$r->candidacyId)->first();
                 $preselection = Preselection::where('candidature',$r->candidacyId)->first();
                 $evaluationFinale = EvaluationFinale::select('evaluationsfinales.*','users.fullname as evaluateurName')->where('candidature',$r->candidacyId)->join('users','evaluationsfinales.evaluateur','=','users.id')->get();
-                $evaluateursSelect = User::select('id','fullname')->where('profil','evaluateur')->get();
+                $evaluateursSelect = User::select('id','fullname')->where('profil','evaluateur')->orWhere('profil','admin')->get();
             }
                 
           
