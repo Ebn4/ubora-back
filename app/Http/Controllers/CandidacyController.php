@@ -297,7 +297,7 @@ class CandidacyController extends Controller
                                     ->where('candidature',$r->candidacyId)
                                     ->where('evaluateur','=',$r->userId)
                                     ->join('users','evaluationsfinales.evaluateur','=','users.id')->get();
-                $evaluateursSelect = User::select('id','fullname')->where('profil','evaluateur')->get();
+                $evaluateursSelect = User::select('id','fullname')->where('profil','evaluateur')->orWhere('profil','admin')->get();
             }elseif($r-> userProfile == 'Admin' || $r-> userProfile == 'Lecteur' ){
                 $candidacy = Candidacy::where('candidats.id',$r->candidacyId)->first();
                 $preselection = Preselection::where('candidature',$r->candidacyId)->first();
