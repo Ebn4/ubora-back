@@ -21,6 +21,7 @@ class UserController extends Controller
         } */
 
         try {
+            info('get Users');
             $users = User::get();
 
             return response()->json([
@@ -45,6 +46,7 @@ class UserController extends Controller
     {
 
         try {
+            info('get User');
             /*  dd($r->distributor); */
 
             $user = User::where('id', $r->userId)->first();
@@ -82,6 +84,7 @@ class UserController extends Controller
         ]); */
 
         try {
+            info('create User');
             /*  info(Auth::user()->cuid . 'is saving user.'); */
             $cuid = Str::upper($r->cuid);
 
@@ -124,7 +127,7 @@ class UserController extends Controller
         ]); */
         try {
 
-
+            info('update User');
             $cuid = Str::upper($r->cuid);
 
             $user = User::find($r->id);
@@ -172,8 +175,10 @@ class UserController extends Controller
     public function deleteUser(Request $r)
     {
         try {
-
+            
+            info('deleting user');
             $user = User::destroy($r->id);
+            info('user deleted');
             return response()->json([
                 'code' => 200,
                 'description' => 'Success',

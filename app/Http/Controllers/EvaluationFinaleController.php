@@ -11,6 +11,7 @@ class EvaluationFinaleController extends Controller
 {
     public function saveEvaluators(Request $r){
         try {
+            info("Saving/updating evaluators");
             $candidacy = Candidacy::find($r->candidacyId);
             $candidacy->evaluateur1 = $r->evaluateur1;
             $candidacy->evaluateur2 = $r->evaluateur2;
@@ -20,7 +21,7 @@ class EvaluationFinaleController extends Controller
             $saved = $candidacy->save();
 
             if ($saved == true) {
-                info('evaluation updated');
+                info('evaluators saved/updated');
                 return response()->json([
                     'code' => 200,
                     'description' => 'Success',
@@ -28,7 +29,7 @@ class EvaluationFinaleController extends Controller
 
                 ]);
             } else {
-                info('error when updating evaluation');
+                info('error when updating evaluatiors');
                 return response()->json([
                     'code' => 500,
                     'description' => 'Erreur',
@@ -125,6 +126,7 @@ class EvaluationFinaleController extends Controller
             })->count();
 
             if($chekEvaluateur <= 0){
+                info("401");
                 return response()->json([
                     'code' => 401,
                     'description' => "Error",
@@ -174,8 +176,9 @@ class EvaluationFinaleController extends Controller
 
     public function deleteEvaluationFinale(Request $r){
         try {
-           
+            info('deleting evaluation');
             $user = EvaluationFinale::destroy($r->evaluationId);
+            info('evaluation deleted');
             return response()->json([
                 'code' => 200,
                 'description' => 'Success',

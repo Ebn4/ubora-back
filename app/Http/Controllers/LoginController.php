@@ -21,7 +21,7 @@ class LoginController extends Controller
     public function Login(Request $req)
     {
         try {
-
+            info('logging');
             //on recupère le cuid et la mot de passe entrés par l'utilisateurs dans la requète
             $cuid = $req->cuid;
             $password = $req->password;

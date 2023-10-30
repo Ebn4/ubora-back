@@ -20,6 +20,7 @@ class CandidacyController extends Controller
     {
 
         try {
+            info("uploading candidacies");
             /*  info(Auth::user()->cuid .' is charging batch.'); */
             $filename = time() . '.csv';
            
@@ -97,7 +98,8 @@ class CandidacyController extends Controller
 
     public function uploadCandidaciesDocs(Request $r){
        /*  $fichiers= $r->file('fichiers'); */
-        info($r->file());
+       info('uploading files');
+       info($r->file());
         try{
             foreach($r->file() as $f){
                 if (Storage::disk('public')->exists($f->getClientOriginalName())) {
@@ -106,6 +108,7 @@ class CandidacyController extends Controller
                 }
                 Storage::disk('public')->put($f->getClientOriginalName(), file_get_contents($f));
             }
+            info('files uploaded');
             return response()->json([
                 'code' => 200,
                 'description' => 'Success',
@@ -157,6 +160,7 @@ class CandidacyController extends Controller
     public function getDoc(Request $r){
         
         try {
+            info('get File');
             $storagePath = storage_path('app/public/');           
             $file = File::glob($storagePath.$r->docName);
           
@@ -188,7 +192,7 @@ class CandidacyController extends Controller
             }
 
            
-
+            info('get File Ok');
             return response()->json([
                 'code' =>  $code,
                 'description' =>  $description,
@@ -209,7 +213,7 @@ class CandidacyController extends Controller
     public function getPreselectedCandidacies(Request $r){
 
         try {
-            info($r);
+            info('get Preselected candidacies');
             if($r-> userProfile == 'Evaluateur'){
                 $candidacies = Candidacy::select('candidats.*','preselections.pres_validation as preselection')
                 ->join('preselections','candidats.id','=', 'preselections.candidature')
@@ -232,7 +236,7 @@ class CandidacyController extends Controller
             }
 
             $candidacies = $this->calulateAverage( $candidacies,$evaluations);
-           
+            info('get Preselected candidacies Ok');
 
             return response()->json([
                 'code' => 200,
@@ -255,6 +259,7 @@ class CandidacyController extends Controller
 
     private function calulateAverage($candidacies,$evaluations){
 
+        info('calculate average');
         foreach($candidacies as $c){
             $noteTotale = 0;
             $nbrEv = 0;
@@ -271,7 +276,7 @@ class CandidacyController extends Controller
              $c->evaluations_effectuées =$nbrEv;
             }
         }
-
+        info('average Ok');
         return $candidacies;
 
     }
@@ -290,6 +295,7 @@ class CandidacyController extends Controller
             ->join('users as u2','candidats.evaluateur2','=','u2.id')
             ->join('users as u3','candidats.evaluateur3','=','u3.id')
             ->first(); */
+            info('get Candidacy');
             if($r-> userProfile == 'Evaluateur'){
                 $candidacy = Candidacy::where('candidats.id',$r->candidacyId)->first();
                 $preselection = Preselection::where('candidature',$r->candidacyId)->first();
@@ -307,7 +313,7 @@ class CandidacyController extends Controller
                 
           
           
-         
+            info('get Candidacy ok');
             if ($candidacy != '') {
                 return response()->json([
                     'code' => 200,
@@ -340,7 +346,7 @@ class CandidacyController extends Controller
 
     public function deleteCandidacy(Request $r){
         try {
-           info($r);
+           info('delete Candidacy');
             DB::transaction(function () use ($r){
                $preselection= DB::table('preselections')->where('candidature',$r->candidacyId)->delete();
                 $evaluation = DB::table('evaluationsfinales')->where('candidature', $r->candidacy)->delete();
@@ -350,7 +356,7 @@ class CandidacyController extends Controller
                info( $evaluation);
                info($candidacy);
             });
-            
+            info('Candidacy deleted');
             return response()->json([
                 'code' => 200,
                 'description' => 'Success',

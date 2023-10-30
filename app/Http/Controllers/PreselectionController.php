@@ -11,6 +11,7 @@ class PreselectionController extends Controller
     //
     public function createPreselection(Request $r){
         try {
+            info('create préselection');
             $preselection = Preselection::create([
                 'candidature' => $r->candidacyId,
                 'critere_nationalite' => $r->crt_nationalite,
@@ -35,7 +36,7 @@ class PreselectionController extends Controller
                     'message' => "Préselection enregistrée"
                 ]);
             } else {
-
+                info("Erreur lors de l'enregistrement");
                 /* return redirect()->route('users')->with("action_error", "Erreur lors de l'enregistrement")->with('modal', true); */
                 return response()->json([
                     'code' => 400,
@@ -55,6 +56,7 @@ class PreselectionController extends Controller
 
     public function updatePreselection(Request $r){
         try {
+            info("update préselection");
             $preselection = Preselection::find($r->preselectionId);
 
             $preselection->critere_nationalite = $r->crt_nationalite;
@@ -102,8 +104,9 @@ class PreselectionController extends Controller
 
     public function deletePreselection(Request $r){
         try {
-           
+            info("deleting préselection");
             $user = Preselection::destroy($r->preselectionId);
+            info("préselection deleted");
             return response()->json([
                 'code' => 200,
                 'description' => 'Success',
