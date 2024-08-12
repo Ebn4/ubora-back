@@ -11,28 +11,64 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use PhpParser\Node\Stmt\TryCatch;
 use Spatie\SimpleExcel\SimpleExcelReader;
 
 class CandidacyController extends Controller
 {
+    /**
+     * @OA\Post(
+     *     path="/api/uploadCandidacies",
+     *     summary="Enregistrement en batch des données des formulaires",
+     *     operationId="uploadForms",
+     *     tags={"Enregistrement des candidatures"},
+     *     @OA\RequestBody(
+     *         description="Cette interface d'API permet l'enregistrement en batch des données issues des formulaires, collectées dans un fichier CSV.",
+     *         required=true,
+     *         @OA\MediaType(
+     *             mediaType="multipart/form-data",
+     *             @OA\Schema(
+     *                 @OA\Property(
+     *                     description="The file to upload",
+     *                     property="fichier",
+     *                     type="file"
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful operation",
+     *         @OA\JsonContent(
+     *             @OA\Property(
+     *                 property="success",
+     *                 type="boolean"   
+
+     *             )
+     *         )
+     *     )
+     * )
+     */
+
     public function uploadCandidacies(Request $r)
     {
 
         try {
             info("uploading candidacies");
+            info($r);
             /*  info(Auth::user()->cuid .' is charging batch.'); */
             $filename = time() . '.csv';
-           
+
             $candidacies = $r->file('fichier');
-            
+
 
             $fichier = $candidacies->move(base_path('storage/app'), $filename);
-            
+
 
             $reader = SimpleExcelReader::create($fichier)->useDelimiter(';');
             $rows = $reader->getRows()->toArray();
-           
+
             DB::transaction(function () use ($rows, $r) {
                 foreach ($rows as $row) {
                     /*   $charged_msisdn = Charged_Account::create($row); */
@@ -66,13 +102,13 @@ class CandidacyController extends Controller
                         'adresse_universite' => $row['adresse_universit'],
                         'parente_agent_orange' => $row['etesvous_apparentunagentdeorangerdc'],
                         'institution_scolaire' => $row['institution_scolairefrquente'],
-                        'faculte'=>$row['facult_'],
+                        'faculte' => $row['facult_'],
                         'montant_frais' => $row['montants_desfrais'],
                         'sexe' => $row['sexe'],
                         'attestation_de_reussite_derniere_annee' => $row['attestation_derussitedeladernireannedtude'],
                         'user_last_login' => $row['user_last_login'],
 
-                    ],['post_work_id'], ['form_id']);
+                    ], ['post_work_id'], ['form_id']);
                 }
             });
             // 5. On supprime le fichier uploadé
@@ -96,12 +132,55 @@ class CandidacyController extends Controller
         }
     }
 
-    public function uploadCandidaciesDocs(Request $r){
-       /*  $fichiers= $r->file('fichiers'); */
-       info('uploading files');
-       info($r->file());
-        try{
-            foreach($r->file() as $f){
+    /**
+     * @OA\Post(
+     *     path="/api/uploadCandidaciesDocs",
+     *     summary="Enregistrement des fichiers attachés aux formulaires",
+     *     operationId="uploadDocs",
+     *     tags={"Enregistrement des candidatures"},
+     *     @OA\RequestBody(
+     *         description="Cette interface d'API est conçue pour l'enregistrement des fichiers attachés aux formulaires.",
+     *         required=true,
+     *         @OA\MediaType(
+     *             mediaType="multipart/form-data",
+     *             @OA\Schema(
+     *               type="object",
+     *                 @OA\Property(
+     *                     description="The files to upload",
+     *                     property="fichier",
+     *                     type="array",
+     *                     @OA\Items(
+     *                        type="file",
+     *                         
+     *                     )
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful operation",
+     *         @OA\JsonContent(
+     *             @OA\Property(
+     *                 property="success",
+     *                 type="boolean"
+     *             )
+     *         )
+     *     )
+     * )
+     */
+    public function uploadCandidaciesDocs(Request $r)
+    {
+        /*  $fichiers= $r->file('fichiers'); */
+        info('uploading files');
+        info($r);
+        try {
+
+            $validatedData = $r->validate([
+                'files.*' => 'required|file|mimes:pdf,png,gpg,gpeg'
+            ]);
+
+            foreach ($r->file() as $f) {
                 if (Storage::disk('public')->exists($f->getClientOriginalName())) {
 
                     Storage::disk('public')->delete([$f->getClientOriginalName()]);
@@ -115,7 +194,7 @@ class CandidacyController extends Controller
                 'message' => "Documents importés avec succès",
 
             ]);
-        }catch (\Throwable $th) {
+        } catch (\Throwable $th) {
             Log::error($th);
             return response()->json([
                 'code' => 500,
@@ -124,20 +203,21 @@ class CandidacyController extends Controller
 
             ]);
         }
-        
+
     }
 
 
-    public function getAllCandidacies(Request $r){
+    public function getAllCandidacies(Request $r)
+    {
 
         try {
-            $candidacies = Candidacy::select('candidats.*','preselections.pres_validation as preselection')
-            ->leftJoin('preselections','candidats.id','=', 'preselections.candidature')
-            ->get();
+            $candidacies = Candidacy::select('candidats.*', 'preselections.pres_validation as preselection')
+                ->leftJoin('preselections', 'candidats.id', '=', 'preselections.candidature')
+                ->get();
 
-            $evaluations = EvaluationFinale::select('id','candidature','total')->get();
+            $evaluations = EvaluationFinale::select('id', 'candidature', 'total')->get();
 
-            $candidacies = $this->calulateAverage( $candidacies,$evaluations);
+            $candidacies = $this->calulateAverage($candidacies, $evaluations);
 
             return response()->json([
                 'code' => 200,
@@ -157,45 +237,46 @@ class CandidacyController extends Controller
         }
     }
 
-    public function getDoc(Request $r){
-        
+    public function getDoc(Request $r)
+    {
+
         try {
             info('get File');
-            $storagePath = storage_path('app/public/');           
-            $file = File::glob($storagePath.$r->docName);
-          
-            info($file);
-         
+            $storagePath = storage_path('app/public/');
+            $file = File::glob($storagePath . $r->docName);
 
-            $filename = "" ;
+            info($file);
+
+
+            $filename = "";
             $fileContent = "";
             $code = "";
             $message = "";
-           
-           if(count($file)=== 0){
-               $filename = "" ;
-               $fileContent = "";
-               $code = 404;
-               $description = "Not found";
-               $message = "Document introuvable";
-            }elseif(count($file) === 1){
-               $filename = pathinfo($file[0])['basename'] ;
-               $code = 200;
-               $description = "Success";
-               $message = "OK";
-            }elseif(count($file)>1){
-                $filename = pathinfo($file[0])['basename'] ;
-               $fileSource = (config('app.url').'/'.$storagePath.$r->docName);
-               $code = 200;
-               $description = "Success";
-               $message = "OK";
+
+            if (count($file) === 0) {
+                $filename = "";
+                $fileContent = "";
+                $code = 404;
+                $description = "Not found";
+                $message = "Document introuvable";
+            } elseif (count($file) === 1) {
+                $filename = pathinfo($file[0])['basename'];
+                $code = 200;
+                $description = "Success";
+                $message = "OK";
+            } elseif (count($file) > 1) {
+                $filename = pathinfo($file[0])['basename'];
+                $fileSource = (config('app.url') . '/' . $storagePath . $r->docName);
+                $code = 200;
+                $description = "Success";
+                $message = "OK";
             }
 
-           
+
             info('get File Ok');
             return response()->json([
-                'code' =>  $code,
-                'description' =>  $description,
+                'code' => $code,
+                'description' => $description,
                 'filename' => $filename,
                 'message' => $message
             ]);
@@ -210,32 +291,33 @@ class CandidacyController extends Controller
         }
     }
 
-    public function getPreselectedCandidacies(Request $r){
+    public function getPreselectedCandidacies(Request $r)
+    {
 
         try {
             info('get Preselected candidacies');
-            if($r-> userProfile == 'Evaluateur'){
-                $candidacies = Candidacy::select('candidats.*','preselections.pres_validation as preselection')
-                ->join('preselections','candidats.id','=', 'preselections.candidature')
-                ->where('preselections.pres_validation','=',true)
-                ->where('candidats.evaluateur1','=',$r->userId)
-                ->orWhere('candidats.evaluateur2','=',$r->userId)
-                ->orWhere('candidats.evaluateur3','=',$r->userId)
-                ->get();
+            if ($r->userProfile == 'Evaluateur') {
+                $candidacies = Candidacy::select('candidats.*', 'preselections.pres_validation as preselection')
+                    ->join('preselections', 'candidats.id', '=', 'preselections.candidature')
+                    ->where('preselections.pres_validation', '=', true)
+                    ->where('candidats.evaluateur1', '=', $r->userId)
+                    ->orWhere('candidats.evaluateur2', '=', $r->userId)
+                    ->orWhere('candidats.evaluateur3', '=', $r->userId)
+                    ->get();
 
-                $evaluations = EvaluationFinale::select('id','candidature','total')->where('evaluateur',$r->userId)->get();
+                $evaluations = EvaluationFinale::select('id', 'candidature', 'total')->where('evaluateur', $r->userId)->get();
 
-            }elseif($r-> userProfile == 'Admin' || $r-> userProfile == 'Lecteur'){
-                $candidacies = Candidacy::select('candidats.*','preselections.pres_validation as preselection')
-                ->join('preselections','candidats.id','=', 'preselections.candidature')
-                ->where('preselections.pres_validation','=',true)
-                ->get();
+            } elseif ($r->userProfile == 'Admin' || $r->userProfile == 'Lecteur') {
+                $candidacies = Candidacy::select('candidats.*', 'preselections.pres_validation as preselection')
+                    ->join('preselections', 'candidats.id', '=', 'preselections.candidature')
+                    ->where('preselections.pres_validation', '=', true)
+                    ->get();
 
-                $evaluations = EvaluationFinale::select('id','candidature','total')->get();
+                $evaluations = EvaluationFinale::select('id', 'candidature', 'total')->get();
 
             }
 
-            $candidacies = $this->calulateAverage( $candidacies,$evaluations);
+            $candidacies = $this->calulateAverage($candidacies, $evaluations);
             info('get Preselected candidacies Ok');
 
             return response()->json([
@@ -257,23 +339,24 @@ class CandidacyController extends Controller
     }
 
 
-    private function calulateAverage($candidacies,$evaluations){
+    private function calulateAverage($candidacies, $evaluations)
+    {
 
         info('calculate average');
-        foreach($candidacies as $c){
+        foreach ($candidacies as $c) {
             $noteTotale = 0;
             $nbrEv = 0;
-            foreach ($evaluations as $ev){
-                
-                if($ev->candidature == $c->id){
+            foreach ($evaluations as $ev) {
+
+                if ($ev->candidature == $c->id) {
                     $nbrEv += 1;
                     $noteTotale += $ev->total;
-                    $moyenne = $noteTotale/$nbrEv;
-                    $c->moyenne = $moyenne;  
+                    $moyenne = $noteTotale / $nbrEv;
+                    $c->moyenne = $moyenne;
                 }
-            
-             
-             $c->evaluations_effectuées =$nbrEv;
+
+
+                $c->evaluations_effectuées = $nbrEv;
             }
         }
         info('average Ok');
@@ -281,8 +364,9 @@ class CandidacyController extends Controller
 
     }
 
-    public function getCandidacy(Request $r){
-        try {           
+    public function getCandidacy(Request $r)
+    {
+        try {
             /* $candidacy = Candidacy::select('candidats.*',
             'u1.fullname as evaluateur1Name',
             'u1.id as evaluateur1Id',
@@ -296,23 +380,23 @@ class CandidacyController extends Controller
             ->join('users as u3','candidats.evaluateur3','=','u3.id')
             ->first(); */
             info('get Candidacy');
-            if($r-> userProfile == 'Evaluateur'){
-                $candidacy = Candidacy::where('candidats.id',$r->candidacyId)->first();
-                $preselection = Preselection::where('candidature',$r->candidacyId)->first();
-                $evaluationFinale = EvaluationFinale::select('evaluationsfinales.*','users.fullname as evaluateurName')
-                                    ->where('candidature',$r->candidacyId)
-                                    ->where('evaluateur','=',$r->userId)
-                                    ->join('users','evaluationsfinales.evaluateur','=','users.id')->get();
-                $evaluateursSelect = User::select('id','fullname')->where('profil','evaluateur')->orWhere('profil','admin')->get();
-            }elseif($r-> userProfile == 'Admin' || $r-> userProfile == 'Lecteur' ){
-                $candidacy = Candidacy::where('candidats.id',$r->candidacyId)->first();
-                $preselection = Preselection::where('candidature',$r->candidacyId)->first();
-                $evaluationFinale = EvaluationFinale::select('evaluationsfinales.*','users.fullname as evaluateurName')->where('candidature',$r->candidacyId)->join('users','evaluationsfinales.evaluateur','=','users.id')->get();
-                $evaluateursSelect = User::select('id','fullname')->where('profil','evaluateur')->orWhere('profil','admin')->get();
+            if ($r->userProfile == 'Evaluateur') {
+                $candidacy = Candidacy::where('candidats.id', $r->candidacyId)->first();
+                $preselection = Preselection::where('candidature', $r->candidacyId)->first();
+                $evaluationFinale = EvaluationFinale::select('evaluationsfinales.*', 'users.fullname as evaluateurName')
+                    ->where('candidature', $r->candidacyId)
+                    ->where('evaluateur', '=', $r->userId)
+                    ->join('users', 'evaluationsfinales.evaluateur', '=', 'users.id')->get();
+                $evaluateursSelect = User::select('id', 'fullname')->where('profil', 'evaluateur')->orWhere('profil', 'admin')->get();
+            } elseif ($r->userProfile == 'Admin' || $r->userProfile == 'Lecteur') {
+                $candidacy = Candidacy::where('candidats.id', $r->candidacyId)->first();
+                $preselection = Preselection::where('candidature', $r->candidacyId)->first();
+                $evaluationFinale = EvaluationFinale::select('evaluationsfinales.*', 'users.fullname as evaluateurName')->where('candidature', $r->candidacyId)->join('users', 'evaluationsfinales.evaluateur', '=', 'users.id')->get();
+                $evaluateursSelect = User::select('id', 'fullname')->where('profil', 'evaluateur')->orWhere('profil', 'admin')->get();
             }
-                
-          
-          
+
+
+
             info('get Candidacy ok');
             if ($candidacy != '') {
                 return response()->json([
@@ -321,8 +405,8 @@ class CandidacyController extends Controller
                     'candidacy' => $candidacy,
                     'preselection' => $preselection,
                     'evaluationFinale' => $evaluationFinale,
-                    'evaluateursSelect'=> $evaluateursSelect,
-                    
+                    'evaluateursSelect' => $evaluateursSelect,
+
                 ]);
             } else {
                 return response()->json([
@@ -344,17 +428,18 @@ class CandidacyController extends Controller
 
     }
 
-    public function deleteCandidacy(Request $r){
+    public function deleteCandidacy(Request $r)
+    {
         try {
-           info('delete Candidacy');
-            DB::transaction(function () use ($r){
-               $preselection= DB::table('preselections')->where('candidature',$r->candidacyId)->delete();
+            info('delete Candidacy');
+            DB::transaction(function () use ($r) {
+                $preselection = DB::table('preselections')->where('candidature', $r->candidacyId)->delete();
                 $evaluation = DB::table('evaluationsfinales')->where('candidature', $r->candidacy)->delete();
-               $candidacy = Candidacy::destroy($r->candidacyId);
+                $candidacy = Candidacy::destroy($r->candidacyId);
 
-               info($preselection);
-               info( $evaluation);
-               info($candidacy);
+                info($preselection);
+                info($evaluation);
+                info($candidacy);
             });
             info('Candidacy deleted');
             return response()->json([
@@ -363,14 +448,14 @@ class CandidacyController extends Controller
                 'message' => "Candidature supprimée",
 
             ]);
-            
+
         } catch (\Throwable $th) {
             Log::error($th->getMessage());
 
             return response()->json([
                 'code' => 500,
                 'description' => 'Erreur',
-                'message' =>  'Erreur interne du serveur'
+                'message' => 'Erreur interne du serveur'
             ]);
         }
     }
