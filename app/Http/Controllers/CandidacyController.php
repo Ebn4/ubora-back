@@ -223,7 +223,7 @@ class CandidacyController extends Controller
                 'code' => 200,
                 'description' => 'Success',
                 'candidacies' => $candidacies,
-                /* 'evaluations' => $evaluations */
+                'evaluations' => $evaluations
 
             ]);
         } catch (\Throwable $th) {
