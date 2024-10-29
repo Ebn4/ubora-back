@@ -218,12 +218,12 @@ class CandidacyController extends Controller
             $evaluations = EvaluationFinale::select('id', 'candidature', 'total')->get();
 
             $candidacies = $this->calulateAverage($candidacies, $evaluations);
-
+                        
             return response()->json([
                 'code' => 200,
                 'description' => 'Success',
                 'candidacies' => $candidacies,
-                'evaluations' => $evaluations
+             /*    'evaluations' => $evaluations */
 
             ]);
         } catch (\Throwable $th) {
@@ -346,6 +346,7 @@ class CandidacyController extends Controller
         foreach ($candidacies as $c) {
             $noteTotale = 0;
             $nbrEv = 0;
+            $c->evaluations_effectuées = 0;
             foreach ($evaluations as $ev) {
 
                 if ($ev->candidature == $c->id) {
