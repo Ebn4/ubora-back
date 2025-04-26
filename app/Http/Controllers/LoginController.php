@@ -57,7 +57,7 @@ class LoginController extends Controller
             <APPLINAME>' . config('app.name') . '</APPLINAME>
             <CUID>' . $cuid . '</CUID>
             <PASSWORD>' . $password . '</PASSWORD>
-            <DATE>' . $date . '</DATE>       
+            <DATE>' . $date . '</DATE>
             </COMMAND>';
 
 
@@ -132,7 +132,7 @@ class LoginController extends Controller
     }
 
     //fonction pour vérifier que l'utilisateur est dans la BDD de l'application
-    private function checkUser($cuid)
+    private function checkUser($cuid): User | string
     {
         try {
             $cuid = str_replace(' ','',$cuid);
@@ -151,7 +151,7 @@ class LoginController extends Controller
     {
         if ($user->password == "" || $user->fullname == "" || $user->description == "" ||  $user->email == "" || $user->msisdn == "") {
             try {
-                
+
                 $udpateduser = User::where('cuid', $user->cuid)
                     ->update([
                         'fullname' => $ldap['FULLNAME'],
@@ -193,7 +193,7 @@ class LoginController extends Controller
         $msisdn =  '0' . $msisdn . '';
 
         $_SESSION['phonenumber'] = $msisdn;
-        
+
       /*   $_SESSION['email'] = $ldap["EMAIL"]; */
 
         $client = new Client;
@@ -270,22 +270,22 @@ class LoginController extends Controller
                 "otpOveroutTime"  => 300000,
                 "customMessage"  => "",
                 "senderName"  => $senderName
-    
+
             ]);
-    
+
             $headers = [
                 'Content-Type' => 'application/json',
             ];
-    
+
             $client = new Client;
-    
+
             $res = $client->request('POST', config('settings.otp_generate'), [
                 'headers' => $headers,
                 'body' => $body1
             ]);
-    
+
             info($body1);
-    
+
             $content = $res->getBody()->getContents();
             Log::info("OTP generate API:" . json_encode($content) . '');
             if (!empty($content)) {
@@ -299,7 +299,7 @@ class LoginController extends Controller
            $content['code'] = 400;
            return  $content;
         }
-        
+
     }
 
 
@@ -342,7 +342,7 @@ class LoginController extends Controller
             Log::info("OTP check API" . json_encode($content) . '');
 
             if (!empty($content)) {
-                // si la vérification est réussie on authentifie l'utilisateur: récuperer ses info en BDD 
+                // si la vérification est réussie on authentifie l'utilisateur: récuperer ses info en BDD
                 if ($content['diagnosticResult'] == true) {
                     $user = new User;
                     $user = User::where('phonenumber', '=', substr_replace($userOtp['reference'],'+243',0,1))
