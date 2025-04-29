@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use App\Models\User;
@@ -76,7 +77,6 @@ class UserController extends Controller
     }
 
 
-
     public function createUser(Request $r)
     {
         /*  $r->validate([
@@ -86,21 +86,18 @@ class UserController extends Controller
         try {
             info('create User');
             /*  info(Auth::user()->cuid . 'is saving user.'); */
-            $cuid = Str::upper($r->cuid);
 
-            $user = User::updateOrCreate(
-                [
-                    "cuid" =>  $cuid
-                ],
-                [
-                    "profil" => $r->profile
-                ]
-            );
+            $user = User::create([
+                "email" => $r->email,
+                "password" => Hash::make("password"),
+                "name" => "test",
+                "profil" => $r->profile
+            ]);
 
+//            dd($r->all());
 
 
-
-            info('user saved: ' . $r->cuid);
+            info('user saved: ' . $r->email);
 
             /* return redirect()->route('users')->with("action_success", 'Utilisateur enregistré')->with('modal', true); */
             return response()->json([
@@ -112,8 +109,8 @@ class UserController extends Controller
             Log::error($th->getMessage());
             return response()->json([
                 'code' => 500,
-                'description' => "Erreur interne du serveur",
-                'message' => "Erreur interne du serveur"
+                'description' => $th->getMessage(),
+                'message' => $th->getMessage()
             ]);
         }
     }
@@ -166,7 +163,7 @@ class UserController extends Controller
             return response()->json([
                 'code' => 500,
                 'description' => 'Erreur',
-                'message' =>  'Erreur interne du serveur'
+                'message' => 'Erreur interne du serveur'
             ]);
         }
     }
@@ -175,7 +172,7 @@ class UserController extends Controller
     public function deleteUser(Request $r)
     {
         try {
-            
+
             info('deleting user');
             $user = User::destroy($r->id);
             info('user deleted');
@@ -191,7 +188,7 @@ class UserController extends Controller
             return response()->json([
                 'code' => 500,
                 'description' => 'Erreur',
-                'message' =>  'Erreur interne du serveur'
+                'message' => 'Erreur interne du serveur'
             ]);
         }
     }
