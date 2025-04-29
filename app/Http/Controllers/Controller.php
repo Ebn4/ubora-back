@@ -13,7 +13,7 @@ use Illuminate\Routing\Controller as BaseController;
      *      version="1.0.0",
      *      title="Documentation Ubora Assessments",
      *      description="L5 Swagger OpenApi description",
-     *      
+     *
      * )
      *
      *
