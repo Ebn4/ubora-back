@@ -43,7 +43,7 @@ class CandidacyController extends Controller
      *         @OA\JsonContent(
      *             @OA\Property(
      *                 property="success",
-     *                 type="boolean"   
+     *                 type="boolean"  
 
      *             )
      *         )
@@ -151,7 +151,7 @@ class CandidacyController extends Controller
      *                     type="array",
      *                     @OA\Items(
      *                        type="file",
-     *                         
+     *
      *                     )
      *                 )
      *             )
@@ -207,7 +207,7 @@ class CandidacyController extends Controller
     }
 
 
-    public function getAllCandidacies(Request $r)
+    public function index()
     {
 
         try {
@@ -218,7 +218,7 @@ class CandidacyController extends Controller
             $evaluations = EvaluationFinale::select('id', 'candidature', 'total')->get();
 
             $candidacies = $this->calulateAverage($candidacies, $evaluations);
-                        
+
             return response()->json([
                 'code' => 200,
                 'description' => 'Success',
@@ -429,7 +429,7 @@ class CandidacyController extends Controller
 
     }
 
-    public function deleteCandidacy(Request $r)
+    public function destroy(Request $r)
     {
         try {
             info('delete Candidacy');

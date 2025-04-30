@@ -12,8 +12,7 @@ use App\Models\User;
 
 class UserController extends Controller
 {
-
-    public function getUsers(Request $r)
+    public function index(Request $r)
     {
 
         /* if (!Gate::allows("only_admin", Auth::user())) {
@@ -43,7 +42,7 @@ class UserController extends Controller
         }
     }
 
-    public function getUser(Request $r)
+    public function show(Request $r)
     {
 
         try {
@@ -77,7 +76,7 @@ class UserController extends Controller
     }
 
 
-    public function createUser(Request $r)
+    public function store(Request $r)
     {
         /*  $r->validate([
             'cuid' => ['unique:user']
@@ -116,7 +115,7 @@ class UserController extends Controller
     }
 
 
-    public function updateUser(Request $r)
+    public function update(Request $r)
     {
         /* $r->validate([
             'cuid' => ['unique:user,cuid,' . $r->id],
@@ -169,7 +168,7 @@ class UserController extends Controller
     }
 
 
-    public function deleteUser(Request $r)
+    public function destroy(Request $r)
     {
         try {
 

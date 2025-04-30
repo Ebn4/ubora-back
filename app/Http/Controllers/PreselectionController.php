@@ -8,8 +8,7 @@ use Illuminate\Support\Facades\Log;
 
 class PreselectionController extends Controller
 {
-    //
-    public function createPreselection(Request $r){
+    public function store(Request $r){
         try {
             info('create préselection');
             $preselection = Preselection::create([
@@ -22,10 +21,10 @@ class PreselectionController extends Controller
                 'critere_universite_institution_choisie' => $r->crt_univeriste_institution,
                 'critere_cycle_etude'  => $r->crt_cycle_etude,
                 'pres_commentaire' => $r->pres_commentaire,
-                'pres_validation' => $r->pres_validate, 
+                'pres_validation' => $r->pres_validate,
             ]);
 
-           
+
             if ($preselection->id) {
                 info('preselection saved: ' . $preselection->id);
 
@@ -54,7 +53,7 @@ class PreselectionController extends Controller
         }
     }
 
-    public function updatePreselection(Request $r){
+    public function update(Request $r){
         try {
             info("update préselection");
             $preselection = Preselection::find($r->preselectionId);
@@ -101,8 +100,7 @@ class PreselectionController extends Controller
         }
     }
 
-
-    public function deletePreselection(Request $r){
+    public function destroy(Request $r){
         try {
             info("deleting préselection");
             $user = Preselection::destroy($r->preselectionId);

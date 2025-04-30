@@ -17,7 +17,7 @@ class EvaluationFinaleController extends Controller
             $candidacy->evaluateur2 = $r->evaluateur2;
             $candidacy->evaluateur3 = $r->evaluateur3;
 
-            
+
             $saved = $candidacy->save();
 
             if ($saved == true) {
@@ -48,13 +48,11 @@ class EvaluationFinaleController extends Controller
             ]);
         }
     }
-    
-    
-    
-    public function createEvaluationFinale(Request $r){
-       
+
+    public function store(Request $r){
+
         try {
-            
+
             info("creating evaluation");
             $userId= $r->userId;
             $chekEvaluateur =  Candidacy::where('id','=',$r->candidacyId)
@@ -65,7 +63,7 @@ class EvaluationFinaleController extends Controller
             })->count();
 
 
-           
+
 
             if($chekEvaluateur <= 0){
                 return response()->json([
@@ -114,7 +112,7 @@ class EvaluationFinaleController extends Controller
         }
     }
 
-    public function updateEvaluationFinale(Request $r){
+    public function update(Request $r){
         try {
             info("updating evaluation");
             $userId= $r->userId;
@@ -133,7 +131,7 @@ class EvaluationFinaleController extends Controller
                     'message' => "Vous n'êtes pas autorisé à évaluer cette candidature"
                 ]);
             }
-            
+
             $evaluation = EvaluationFinale::find($r->evaluationId);
 
             $evaluation->critere_doss_academique = $r->crt_doss_academique;
@@ -174,7 +172,7 @@ class EvaluationFinaleController extends Controller
         }
     }
 
-    public function deleteEvaluationFinale(Request $r){
+    public function destroy(Request $r){
         try {
             info('deleting evaluation');
             $user = EvaluationFinale::destroy($r->evaluationId);
