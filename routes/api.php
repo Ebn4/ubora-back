@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AuthenticationController;
 use App\Http\Controllers\CandidacyController;
 use App\Http\Controllers\EvaluationFinaleController;
 use Illuminate\Http\Request;
@@ -9,7 +10,7 @@ use App\Http\Controllers\PreselectionController;
 use App\Http\Controllers\UserController;
 
 
-Route::post('/login', [LoginController::class, "login"]);
+Route::post('/login', AuthenticationController::class);
 
 Route::middleware('auth:sanctum')->group(function () {
 
