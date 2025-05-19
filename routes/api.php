@@ -2,12 +2,13 @@
 
 use App\Http\Controllers\AuthenticationController;
 use App\Http\Controllers\CandidacyController;
+use App\Http\Controllers\CriteriaController;
 use App\Http\Controllers\EvaluationFinaleController;
+use App\Http\Controllers\PeriodController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PreselectionController;
 use App\Http\Controllers\UserController;
-
 
 Route::post('login', AuthenticationController::class);
 Route::apiResource('users', UserController::class)->only(['store']);
@@ -29,6 +30,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/getCandidacy',[CandidacyController::class,"getCandidacy"]);
 
     Route::post('/saveEvaluators',[EvaluationFinaleController::class,"saveEvaluators"]);
+    Route::get('period', [PeriodController::class, 'index']);
+    Route::apiResource('criteria', CriteriaController::class);
+    Route::post('periods/attach-criteria/{id}', [PeriodController::class, 'attachCriteriaToPeriod']);
+    Route::get('periods/criteria/{id}', [PeriodController::class, 'getCriteriaForPeriod']);
 
 });
 
