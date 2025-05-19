@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Candidacy;
 use App\Models\EvaluationFinale;
+use App\Models\Period;
 use App\Models\Preselection;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -53,73 +55,96 @@ class CandidacyController extends Controller
 
     public function uploadCandidacies(Request $r)
     {
-
         try {
             info("uploading candidacies");
-            info($r);
-            /*  info(Auth::user()->cuid .' is charging batch.'); */
+
             $filename = time() . '.csv';
-
             $candidacies = $r->file('fichier');
-
-
             $fichier = $candidacies->move(base_path('storage/app'), $filename);
-
-
             $reader = SimpleExcelReader::create($fichier)->useDelimiter(';');
+
             $rows = $reader->getRows()->toArray();
+            $currentYear = now()->year;
 
-            DB::transaction(function () use ($rows, $r) {
+            $existingEmails = Candidacy::pluck('etn_email')->toArray();
+
+            $processedEmails = [];
+
+            DB::transaction(function () use ($rows, $existingEmails, &$processedEmails, $currentYear) {
+                $period = Period::firstOrCreate(['year' => $currentYear]);
+
                 foreach ($rows as $row) {
-                    /*   $charged_msisdn = Charged_Account::create($row); */
-                    info($row);
-                    $charged_msisdn = Candidacy::upsert([
-                        'post_work_id' => $row['post_work_id'],
-                        'form_id' => $row['formulaire_dinscriptionbourseubora_id'],
-                        'form_submited_at' => $row['created_on'],
-                        'etn_nom' => $row['_etn_nom'],
-                        'etn_email' => $row['email'],
-                        'etn_prenom' => $row['_etn_prenom'],
-                        'etn_postnom' => $row['postnom'],
-                        'etn_naissance' => $row['naissance'],
-                        'ville' => $row['ville'],
-                        'telephone' => $row['telephone'],
-                        'adresse' => $row['adresse'],
-                        'province' => $row['province'],
-                        'nationalite' => $row['nationalite'],
-                        'cv' => $row['cv'],
-                        'releve_note_derniere_annee' => $row['relev_denotesdeladernireannedecours'],
-                        'en_soumettant' => $row['en_soumettant'],
-                        'section_option' => $row['sectionoption_'],
-                        'j_atteste' => $row['jatteste_quelesinfor'],
-                        'degre_parente_agent_orange' => $row['si_ouiquelleestvotredegrderelation'],
-                        'annee_diplome_detat' => $row['anne_dobtentiondudiplmedtat'],
-                        'diplome_detat' => $row['diplme_detat'],
-                        'autres_diplomes_atttestation' => $row['autres_diplmesattestations'],
-                        'universite_institut_sup' => $row['nom_universitouinstitutsuprieur'],
-                        'pourcentage_obtenu' => $row['pourcentage_obtenu'],
-                        'lettre_motivation' => $row['lettre_demotivation'],
-                        'adresse_universite' => $row['adresse_universit'],
-                        'parente_agent_orange' => $row['etesvous_apparentunagentdeorangerdc'],
-                        'institution_scolaire' => $row['institution_scolairefrquente'],
-                        'faculte' => $row['facult_'],
-                        'montant_frais' => $row['montants_desfrais'],
-                        'sexe' => $row['sexe'],
-                        'attestation_de_reussite_derniere_annee' => $row['attestation_derussitedeladernireannedtude'],
-                        'user_last_login' => $row['user_last_login'],
+                    try {
+                        $createdOn = Carbon::createFromFormat('d/m/Y H:i', $row['created_on']);
+                        if ($createdOn->year !== $currentYear) {
+                            info("Skipping row: not current year - " . $row['created_on']);
+                            continue;
+                        }
 
-                    ], ['post_work_id'], ['form_id']);
+                        $email = $row['email'];
+
+                        if (in_array($email, $existingEmails)) {
+                            info("Skipping row: email already exists in DB - " . $email);
+                            continue;
+                        }
+
+                        if (in_array($email, $processedEmails)) {
+                            info("Skipping row: duplicate email in file - " . $email);
+                            continue;
+                        }
+
+                        $processedEmails[] = $email;
+
+                        Candidacy::create([
+                            'post_work_id' => $row['post_work_id'],
+                            'form_id' => $row['formulaire_dinscriptionbourseubora_id'],
+                            'form_submited_at' => $createdOn->format('Y-m-d H:i'),
+                            'etn_nom' => $row['_etn_nom'],
+                            'etn_email' => $email,
+                            'etn_prenom' => $row['_etn_prenom'],
+                            'etn_postnom' => $row['postnom'],
+                            'etn_naissance' => Carbon::createFromFormat('d/m/Y', $row['naissance'])->format('Y-m-d'),
+                            'ville' => $row['ville'],
+                            'telephone' => $row['telephone'],
+                            'adresse' => $row['adresse'],
+                            'province' => $row['province'],
+                            'nationalite' => $row['nationalite'],
+                            'cv' => $row['cv'],
+                            'releve_note_derniere_annee' => $row['relev_denotesdeladernireannedecours'],
+                            'en_soumettant' => $row['en_soumettant'],
+                            'section_option' => $row['sectionoption_'],
+                            'j_atteste' => $row['jatteste_quelesinfor'],
+                            'degre_parente_agent_orange' => $row['si_ouiquelleestvotredegrderelation'],
+                            'annee_diplome_detat' => $row['anne_dobtentiondudiplmedtat'],
+                            'diplome_detat' => $row['diplme_detat'],
+                            'autres_diplomes_atttestation' => $row['autres_diplmesattestations'],
+                            'universite_institut_sup' => $row['nom_universitouinstitutsuprieur'],
+                            'pourcentage_obtenu' => $row['pourcentage_obtenu'],
+                            'lettre_motivation' => $row['lettre_demotivation'],
+                            'adresse_universite' => $row['adresse_universit'],
+                            'parente_agent_orange' => $row['etesvous_apparentunagentdeorangerdc'],
+                            'institution_scolaire' => $row['institution_scolairefrquente'],
+                            'faculte' => $row['facult_'],
+                            'montant_frais' => $row['montants_desfrais'],
+                            'sexe' => $row['sexe'],
+                            'attestation_de_reussite_derniere_annee' => $row['attestation_derussitedeladernireannedtude'],
+                            'user_last_login' => $row['user_last_login'],
+                            'period_id' => $period->id,
+                        ]);
+                    } catch (\Exception $e) {
+                        info("Skipping row: error parsing data - " . $e->getMessage());
+                    }
                 }
             });
-            // 5. On supprime le fichier uploadé
-            $reader->close(); // On ferme le $reader
+
+            $reader->close();
             unlink($fichier);
             info("candidacies charged");
+
             return response()->json([
                 'code' => 200,
                 'description' => 'Success',
                 'message' => "Candidatures importées avec succès",
-
             ]);
         } catch (\Throwable $th) {
             Log::error($th);
@@ -127,10 +152,10 @@ class CandidacyController extends Controller
                 'code' => 500,
                 'description' => 'Error',
                 'message' => "Erreur interne du serveur",
-
             ]);
         }
     }
+
 
     /**
      * @OA\Post(
@@ -295,7 +320,7 @@ class CandidacyController extends Controller
     {
 
         try {
-            info('get Preselected candidacies');
+            info('get Preselected candidacies '.$r->userProfile);
             if ($r->userProfile == 'Evaluateur') {
                 $candidacies = Candidacy::select('candidats.*', 'preselections.pres_validation as preselection')
                     ->join('preselections', 'candidats.id', '=', 'preselections.candidature')
@@ -369,11 +394,11 @@ class CandidacyController extends Controller
     {
         try {
             /* $candidacy = Candidacy::select('candidats.*',
-            'u1.fullname as evaluateur1Name',
+            'u1.name as evaluateur1Name',
             'u1.id as evaluateur1Id',
-            'u2.fullname as evaluateur2Name',
+            'u2.name as evaluateur2Name',
             'u2.id as evaluateur2Id',
-            'u3.fullname as evaluateur3Name',
+            'u3.name as evaluateur3Name',
             'u3.id as evaluateur3Id')
             ->where('candidats.id',$r->candidacyId)
             ->join('users as u1','candidats.evaluateur1','=','u1.id')
@@ -384,16 +409,16 @@ class CandidacyController extends Controller
             if ($r->userProfile == 'Evaluateur') {
                 $candidacy = Candidacy::where('candidats.id', $r->candidacyId)->first();
                 $preselection = Preselection::where('candidature', $r->candidacyId)->first();
-                $evaluationFinale = EvaluationFinale::select('evaluationsfinales.*', 'users.fullname as evaluateurName')
+                $evaluationFinale = EvaluationFinale::select('evaluationsfinales.*', 'users.name as evaluateurName')
                     ->where('candidature', $r->candidacyId)
                     ->where('evaluateur', '=', $r->userId)
                     ->join('users', 'evaluationsfinales.evaluateur', '=', 'users.id')->get();
-                $evaluateursSelect = User::select('id', 'fullname')->where('profil', 'evaluateur')->orWhere('profil', 'admin')->get();
+                $evaluateursSelect = User::select('id', 'name')->where('profil', 'evaluateur')->orWhere('profil', 'admin')->get();
             } elseif ($r->userProfile == 'Admin' || $r->userProfile == 'Lecteur') {
                 $candidacy = Candidacy::where('candidats.id', $r->candidacyId)->first();
                 $preselection = Preselection::where('candidature', $r->candidacyId)->first();
-                $evaluationFinale = EvaluationFinale::select('evaluationsfinales.*', 'users.fullname as evaluateurName')->where('candidature', $r->candidacyId)->join('users', 'evaluationsfinales.evaluateur', '=', 'users.id')->get();
-                $evaluateursSelect = User::select('id', 'fullname')->where('profil', 'evaluateur')->orWhere('profil', 'admin')->get();
+                $evaluationFinale = EvaluationFinale::select('evaluationsfinales.*', 'users.name as evaluateurName')->where('candidature', $r->candidacyId)->join('users', 'evaluationsfinales.evaluateur', '=', 'users.id')->get();
+                $evaluateursSelect = User::select('id', 'name')->where('profil', 'evaluateur')->orWhere('profil', 'admin')->get();
             }
 
 

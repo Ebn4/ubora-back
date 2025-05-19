@@ -52,7 +52,8 @@ class Candidacy extends Model
     'user_last_login',
     'evaluateur1',
     'evaluateur2',
-    'evaluateur3'
+    'evaluateur3',
+    'period_id',
     ];
 
     protected $attribute = ['moyenne','evaluations_effectuées'];

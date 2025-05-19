@@ -53,6 +53,8 @@ class CreateCandidatesTable extends Migration
             $table->decimal('evaluateur3', 38, 0)->nullable();
             $table->decimal('somme_notes', 38, 0)->nullable();
             $table->timestamps();
+            $table->foreignId('period_id')->constrained('periods')->onUpdate('cascade')->onDelete('cascade');
+
         });
     }
 
