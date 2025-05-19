@@ -9,4 +9,9 @@ class Period extends Model
     protected $fillable = [
         'year'
     ];
+
+    public function criteria()
+    {
+        return $this->belongsToMany(Criteria::class, 'period_criteria');
+    }
 }
