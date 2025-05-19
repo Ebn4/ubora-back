@@ -5,20 +5,19 @@ use App\Http\Controllers\CandidacyController;
 use App\Http\Controllers\EvaluationFinaleController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\LoginController;
 use App\Http\Controllers\PreselectionController;
 use App\Http\Controllers\UserController;
 
 
-Route::post('/login', AuthenticationController::class);
+Route::post('login', AuthenticationController::class);
+Route::apiResource('users', UserController::class)->only(['store']);
 
 Route::middleware('auth:sanctum')->group(function () {
-
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
 
-    Route::apiResource('users', UserController::class);
+    Route::apiResource('users', UserController::class)->except(['store']);
     Route::apiResource('candidacies', CandidacyController::class)->only(['index', 'destroy']);
     Route::apiResource('evaluationFinale', EvaluationFinaleController::class)->except(['index','show']);
     Route::apiResource('preselection', PreselectionController::class)->except(['index','show']);
