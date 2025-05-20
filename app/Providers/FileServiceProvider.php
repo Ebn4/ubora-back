@@ -2,8 +2,8 @@
 
 namespace App\Providers;
 
-use FileService;
-use FileServiceImplementation;
+use App\Implementations\FileServiceImplementation;
+use App\Services\FileService;
 use Illuminate\Support\ServiceProvider;
 
 class FileServiceProvider extends ServiceProvider

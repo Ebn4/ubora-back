@@ -1,5 +1,7 @@
 <?php
 
+namespace App\Services;
+
 use Symfony\Component\HttpFoundation\File\File;
 use Illuminate\Http\UploadedFile;
 
