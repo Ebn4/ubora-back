@@ -13,9 +13,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
 use PhpParser\Node\Stmt\TryCatch;
 use Spatie\SimpleExcel\SimpleExcelReader;
+use App\Services\FileService;
 
 class CandidacyController extends Controller
 {
@@ -53,14 +53,15 @@ class CandidacyController extends Controller
      * )
      */
 
-    public function uploadCandidacies(Request $r)
+    public function uploadCandidacies(Request $request, FileService $fileService)
     {
         try {
             info("uploading candidacies");
 
             $filename = time() . '.csv';
-            $candidacies = $r->file('fichier');
-            $fichier = $candidacies->move(base_path('storage/app'), $filename);
+            $candidacies = $request->file('fichier');
+            $fichier = $fileService->uploadFichier($candidacies, 'storage/app', $filename);
+
             $reader = SimpleExcelReader::create($fichier)->useDelimiter(';');
 
             $rows = $reader->getRows()->toArray();
@@ -151,7 +152,7 @@ class CandidacyController extends Controller
             return response()->json([
                 'code' => 500,
                 'description' => 'Error',
-                'message' => "Erreur interne du serveur",
+                'message' => $th,
             ]);
         }
     }
