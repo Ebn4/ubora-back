@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('periods', function (Blueprint $table) {
             $table->id();
             $table->integer('year')->unique();
+            $table->string('status')->default('dispatche');
             $table->timestamps();
         });
     }

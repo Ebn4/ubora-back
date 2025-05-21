@@ -3,30 +3,88 @@
 namespace App\Http\Controllers;
 
 use App\Models\Period;
+use App\Models\StatusHistorique;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class PeriodController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $period = Period::all();
-        return response()->json([
-            'success' => true,
-            'data' => $period
-        ]);
+        $query = Period::orderBy('year', 'desc');
+        if($request->has('search') && $request->input('search') != null){
+            $search = $request->input('search');
+            $query = $query->where('year', 'LIKE', "%{$search}%");
+        }
+
+        if($request->has('status') && $request->input('status') != null){
+            $status = $request->input('status');
+            $query =$query->where('status',  "{$status}");
+        }
+
+        $query=$query->paginate(3);
+        try{
+                return response()->json([
+                'success' => true,
+                'data' => $query
+            ]);
+        }
+        catch(\Exception $e){
+            return response()->json([
+                'success' => false,
+                'message' => 'Une erreur est survenue lors de la récupération des périodes.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
-    public function getCriteriaForPeriod(int $id): JsonResponse
+    public function store(Request $request): JsonResponse
+    {
+        $user_id = $request->user()->id;
+        $data = $request->validate([
+            'year' => 'integer|unique:periods,year|nullable',
+        ]);
+
+        $yearNow = now()->year;
+        $status = 'Dispatch';
+
+        if( isset($data['year']) && $data['year'] != null){
+            $yearNow= $data['year'];
+        }
+
+        try {
+            $period = Period::create([
+                'year' => $yearNow,
+                'status' => $status
+            ]);
+            StatusHistorique::create([
+                'period_id' => $period->id,
+                'user_id' => $user_id,
+                'status' => $period->status
+            ]);
+            return response()->json([
+                'success' => true,
+                'data' => $period
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Une erreur est survenue lors de la création de la période.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function show(int $id): JsonResponse
     {
         try {
             $period = Period::findOrFail($id);
-
             return response()->json([
                 'success' => true,
-                'data' => $period->criteria
+                'data' => $period
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Période non trouvée.'
@@ -35,36 +93,6 @@ class PeriodController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Une erreur est survenue.',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    public function attachCriteriaToPeriod(Request $request, int $periodId): JsonResponse
-    {
-        $request->validate([
-            'criteria_ids' => 'required|array',
-            'criteria_ids.*' => 'exists:criterias,id'
-        ]);
-
-        try {
-            $period = Period::findOrFail($periodId);
-            $period->criteria()->syncWithoutDetaching($request->criteria_ids);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Critères attachés avec succès.',
-                'data' => $period->load('criteria')
-            ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Période non trouvée.'
-            ], 404);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Une erreur est survenue lors de l\'attachement des critères.',
                 'error' => $e->getMessage()
             ], 500);
         }

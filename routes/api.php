@@ -30,7 +30,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/getCandidacy',[CandidacyController::class,"getCandidacy"]);
 
     Route::post('/saveEvaluators',[EvaluationFinaleController::class,"saveEvaluators"]);
-    Route::get('period', [PeriodController::class, 'index']);
+    Route::apiResource('period', PeriodController::class);
+    Route::post('period-search', [PeriodController::class, 'search']);
     Route::apiResource('criteria', CriteriaController::class);
     Route::post('periods/attach-criteria/{id}', [PeriodController::class, 'attachCriteriaToPeriod']);
     Route::get('periods/criteria/{id}', [PeriodController::class, 'getCriteriaForPeriod']);

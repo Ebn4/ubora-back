@@ -7,7 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class Period extends Model
 {
     protected $fillable = [
-        'year'
+        'year',
+        'status'
     ];
 
     public function criteria()
