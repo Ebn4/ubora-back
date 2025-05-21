@@ -30,8 +30,8 @@ readonly class FakeAuthenticationServiceImpl implements Services\AuthenticationS
                 ->where('cuid', $cuid)
                 ->firstOrFail();
 
+            $this->checkPassword($password, $ldapUser->password);
             $user = $this->userService->findByEmail($ldapUser->email);
-            $this->checkPassword($password, $user->password);
 
             $token = $user->createToken($ldapUser->email)->plainTextToken;
 
