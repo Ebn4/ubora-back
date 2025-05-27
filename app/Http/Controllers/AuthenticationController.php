@@ -5,22 +5,42 @@ namespace App\Http\Controllers;
 use App\Http\Requests\AuthenticationRequest;
 use App\Http\Resources\UserResource;
 use App\Services\AuthenticationService;
-use Illuminate\Http\Request;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use \Exception;
-use Illuminate\Support\Facades\DB;
 
 class AuthenticationController extends Controller
 {
+    public function __construct(private AuthenticationService $authenticationService)
+    {
+    }
+
     /**
      * Handle the incoming request.
      */
-    public function __invoke(AuthenticationRequest $request, AuthenticationService $authenticationService)
+    public function login(AuthenticationRequest $request)
     {
         try {
-            $user = $authenticationService->login($request->cuid, $request->password);
+            $user = $this->authenticationService->login($request->cuid, $request->password);
             return new UserResource($user);
         } catch (Exception $e) {
-            return response(['message' => $e->getMessage()], 400);
+            return throw new HttpResponseException(
+                response()->json(data: [
+                    "errors" => $e->getMessage()
+                ], status: 400)
+            );
+        }
+    }
+
+    public function logout()
+    {
+        try {
+            $this->authenticationService->logout();
+        } catch (Exception  $e) {
+            return throw new HttpResponseException(
+                response()->json(data: [
+                    "errors" => $e->getMessage()
+                ], status: 400)
+            );
         }
     }
 }
