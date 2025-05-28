@@ -55,4 +55,17 @@ readonly class FakeAuthenticationServiceImpl implements Services\AuthenticationS
         }
         return true;
     }
+
+    /**
+     * @throws Exception
+     */
+    public function logout(): void
+    {
+        try {
+            $user = \auth()->user();
+            $this->userService->findById($user->id)->tokens()->delete();
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
 }
