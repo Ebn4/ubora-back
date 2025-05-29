@@ -6,4 +6,5 @@ return [
     App\Providers\FileServiceProvider::class,
     App\Providers\ReadExcelFileServiceProvider::class,
     App\Providers\UserServiceProvider::class,
+    App\Providers\UserLdapServiceProvider::class
 ];
