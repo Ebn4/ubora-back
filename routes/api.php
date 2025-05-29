@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthenticationController;
 use App\Http\Controllers\CandidacyController;
 use App\Http\Controllers\CriteriaController;
 use App\Http\Controllers\EvaluationFinaleController;
+use App\Http\Controllers\EvaluatorController;
 use App\Http\Controllers\LdapUserController;
 use App\Http\Controllers\PeriodController;
 use Illuminate\Http\Request;
@@ -20,6 +21,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::get('users/ldap/{user}', LdapUserController::class);
+    Route::apiResource("evaluators", EvaluatorController::class);
 
     Route::apiResource('users', UserController::class)->except(['store']);
     Route::apiResource('candidacies', CandidacyController::class)->only(['index', 'destroy']);
