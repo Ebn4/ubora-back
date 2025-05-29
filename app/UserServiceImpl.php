@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Services\UserService;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\Hash;
 
 class UserServiceImpl implements Services\UserService
 {
@@ -35,5 +36,16 @@ class UserServiceImpl implements Services\UserService
         } catch (ModelNotFoundException $e) {
             throw new Exception($e->getMessage());
         }
+    }
+
+    public function create(string $email, string $cuid, string $profile, string $name): User
+    {
+        return User::query()->create([
+            "email" => $email,
+            "cuid" => $cuid,
+            "profil" => $profile,
+            "name" => $name,
+            "password" => Hash::make("password")
+        ]);
     }
 }
