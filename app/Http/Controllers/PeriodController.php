@@ -13,24 +13,27 @@ class PeriodController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = Period::orderBy('year', 'desc');
-        if($request->has('search') && $request->input('search') != null){
+
+        if ($request->filled('search')) {
             $search = $request->input('search');
-            $query = $query->where('year', 'LIKE', "%{$search}%");
+            $query->where('year', 'LIKE', "%{$search}%");
         }
 
-        if($request->has('status') && $request->input('status') != null){
+        if ($request->filled('status')) {
             $status = $request->input('status');
-            $query =$query->where('status',  "{$status}");
+            $query->where('status', 'LIKE', "%{$status}%");
         }
 
-        $query=$query->paginate(3);
-        try{
-                return response()->json([
+        $perPage = $request->input('per_page', 3);
+
+        try {
+            $paginated = $query->paginate($perPage);
+
+            return response()->json([
                 'success' => true,
-                'data' => $query
+                'data' => $paginated
             ]);
-        }
-        catch(\Exception $e){
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Une erreur est survenue lors de la récupération des périodes.',
@@ -38,6 +41,7 @@ class PeriodController extends Controller
             ], 500);
         }
     }
+
 
     public function store(Request $request): JsonResponse
     {
