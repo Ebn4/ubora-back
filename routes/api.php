@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthenticationController;
 use App\Http\Controllers\CandidacyController;
 use App\Http\Controllers\CriteriaController;
 use App\Http\Controllers\EvaluationFinaleController;
+use App\Http\Controllers\LdapUserController;
 use App\Http\Controllers\PeriodController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -17,6 +18,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
+
+    Route::get('users/ldap/{user}', LdapUserController::class);
 
     Route::apiResource('users', UserController::class)->except(['store']);
     Route::apiResource('candidacies', CandidacyController::class)->only(['index', 'destroy']);
