@@ -16,4 +16,11 @@ class FakeUserLdapServiceImpl implements \App\Services\UserLdapService
             ->orWhere('name', 'LIKE', "%$search%")
             ->get();
     }
+
+    public function findUserByCuid(string $cuid)
+    {
+        return DB::table('ldap')
+            ->where('cuid', $cuid)
+            ->firstOrFail();
+    }
 }
