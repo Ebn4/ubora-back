@@ -38,14 +38,21 @@ class EvaluatorController extends Controller
         $evaluators = Evaluator::query()
             ->with(["user", "period"]);
 
-        if ($request->has('type')) {
-            $type = $request->input('type');
-            $evaluators = $evaluators->where('type', $type);
-        }
-
         if ($request->has('periodId')) {
             $periodId = $request->input('periodId');
             $evaluators = $evaluators->where('period_id', $periodId);
+        }
+
+        if ($request->has('search')) {
+            $search = $request->input('search');
+            $evaluators = $evaluators->whereHas('user', function ($query) use ($search) {
+                $query->where('name', 'like', '%' . $search . '%')
+                    ->orWhere('email', 'like', '%' . $search . '%');
+            });
+        }
+        if ($request->has('type') && $request->input('type') != "") {
+            $type = $request->input('type');
+            $evaluators = $evaluators->where('type', "=", $type);
         }
 
         $evaluators = $evaluators->paginate($perPage);
