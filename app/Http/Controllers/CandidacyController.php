@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\Storage;
 use PhpParser\Node\Stmt\TryCatch;
 use Spatie\SimpleExcel\SimpleExcelReader;
 use App\Services\FileService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Validation\Rule;
 
 class CandidacyController extends Controller
 {
@@ -56,41 +58,49 @@ class CandidacyController extends Controller
     public function uploadCandidacies(Request $request, FileService $fileService)
     {
         try {
-            info("uploading candidacies");
-
             $filename = time() . '.csv';
             $candidacies = $request->file('fichier');
-            $fichier = $fileService->uploadFichier($candidacies, 'storage/app', $filename);
+            $fichier = $fileService->uploadFichier($candidacies, 'candidacies', $filename);
 
             $reader = SimpleExcelReader::create($fichier)->useDelimiter(';');
 
             $rows = $reader->getRows()->toArray();
             $currentYear = now()->year;
 
-            $existingEmails = Candidacy::pluck('etn_email')->toArray();
+            $validated = $request->validate([
+                'year' => [
+                    'nullable',
+                    'integer',
+                    Rule::exists('periods', 'year'),
+                ],
+            ]);
+
+
+            if (isset($validated['year']) && $validated['year'] != null) {
+                $currentYear = Carbon::createFromFormat('Y', $validated['year']);
+            }
 
             $processedEmails = [];
 
-            DB::transaction(function () use ($rows, $existingEmails, &$processedEmails, $currentYear) {
+            DB::transaction(function () use ($rows, &$processedEmails, $currentYear) {
                 $period = Period::firstOrCreate(['year' => $currentYear]);
 
                 foreach ($rows as $row) {
                     try {
                         $createdOn = Carbon::createFromFormat('d/m/Y H:i', $row['created_on']);
-                        if ($createdOn->year !== $currentYear) {
-                            info("Skipping row: not current year - " . $row['created_on']);
+                        if ($createdOn->year !== $currentYear->year) {
+                            info("Skipping row: not current year - " . $createdOn->year);
                             continue;
                         }
 
                         $email = $row['email'];
 
-                        if (in_array($email, $existingEmails)) {
-                            info("Skipping row: email already exists in DB - " . $email);
-                            continue;
-                        }
-
-                        if (in_array($email, $processedEmails)) {
-                            info("Skipping row: duplicate email in file - " . $email);
+                        // Vérification si déjà traité dans ce fichier ou existant en base
+                        if (
+                            in_array($email, $processedEmails) ||
+                            Candidacy::where('etn_email', $email)->exists()
+                        ) {
+                            info("Skipping row: duplicate email - " . $email);
                             continue;
                         }
 
@@ -139,8 +149,12 @@ class CandidacyController extends Controller
             });
 
             $reader->close();
-            unlink($fichier);
-            info("candidacies charged");
+
+            if (file_exists($fichier->getPathname())) {
+                Log::info("Fichier encore présent sur le disque à : " . $fichier->getPathname());
+            } else {
+                Log::warning("Fichier manquant après traitement.");
+            }
 
             return response()->json([
                 'code' => 200,
@@ -156,6 +170,7 @@ class CandidacyController extends Controller
             ]);
         }
     }
+
 
 
     /**
@@ -197,28 +212,28 @@ class CandidacyController extends Controller
      */
     public function uploadCandidaciesDocs(Request $r)
     {
-        /*  $fichiers= $r->file('fichiers'); */
         info('uploading files');
-        info($r);
         try {
-
             $validatedData = $r->validate([
-                'files.*' => 'required|file|mimes:pdf,png,gpg,gpeg'
+                'files.*' => 'required|file|mimes:pdf,png,gpg,jpeg'
             ]);
 
             foreach ($r->file() as $f) {
-                if (Storage::disk('public')->exists($f->getClientOriginalName())) {
+                $fileName = $f->getClientOriginalName();
+                $filePath = 'documents/' . $fileName;
 
-                    Storage::disk('public')->delete([$f->getClientOriginalName()]);
+                if (Storage::disk('public')->exists($filePath)) {
+                    Storage::disk('public')->delete($filePath);
                 }
-                Storage::disk('public')->put($f->getClientOriginalName(), file_get_contents($f));
+
+                Storage::disk('public')->put($filePath, file_get_contents($f));
             }
+
             info('files uploaded');
             return response()->json([
                 'code' => 200,
                 'description' => 'Success',
                 'message' => "Documents importés avec succès",
-
             ]);
         } catch (\Throwable $th) {
             Log::error($th);
@@ -226,31 +241,50 @@ class CandidacyController extends Controller
                 'code' => 500,
                 'description' => 'Error',
                 'message' => "Erreur interne du serveur",
-
             ]);
         }
-
     }
 
 
-    public function index()
+    public function index(Request $request): JsonResponse
     {
-
         try {
-            $candidacies = Candidacy::select('candidats.*', 'preselections.pres_validation as preselection')
-                ->leftJoin('preselections', 'candidats.id', '=', 'preselections.candidature')
-                ->get();
+            $query = Candidacy::select('candidats.*', 'preselections.pres_validation as preselection')
+                ->leftJoin('preselections', 'candidats.id', '=', 'preselections.candidature');
+
+            // Application de la recherche si le paramètre 'search' est présent
+            if ($request->has('search') && $request->input('search') != null) {
+                $search = $request->input('search');
+
+                $query = $query->where(function ($q) use ($search) {
+                    $q->where('etn_nom', 'like', "%$search%")
+                        ->orWhere('etn_prenom', 'like', "%$search%")
+                        ->orWhere('etn_postnom', 'like', "%$search%")
+                        ->orWhere('ville', 'like', "%$search%");
+                });
+            }
+            if ($request->has('ville') && $request->input('ville') != null) {
+                $ville = $request->input('ville');
+                $query = $query->where('ville', 'LIKE', "%{$ville}%");
+            }
+            if ($request->has('periodId') && $request->input('periodId') != null) {
+                $query = $query->where('period_id', $request->input('periodId'));
+            } else {
+                $currentPeriod = Period::where('year', now()->year)->first();
+            }
+            $perPage = $request->input('per_page', 5);
+            $paginated = $query->paginate($perPage);
 
             $evaluations = EvaluationFinale::select('id', 'candidature', 'total')->get();
 
-            $candidacies = $this->calulateAverage($candidacies, $evaluations);
+            $paginated->getCollection()->transform(function ($item) use ($evaluations) {
+                return $this->calulateAverage(collect([$item]), $evaluations)->first();
+            });
 
             return response()->json([
                 'code' => 200,
                 'description' => 'Success',
-                'candidacies' => $candidacies,
-             /*    'evaluations' => $evaluations */
-
+                'data' => $paginated,
             ]);
         } catch (\Throwable $th) {
             Log::error($th);
@@ -258,17 +292,17 @@ class CandidacyController extends Controller
                 'code' => 500,
                 'description' => 'Erreur interne du serveur',
                 'message' => 'Erreur interne du serveur'
-
             ]);
         }
     }
+
 
     public function getDoc(Request $r)
     {
 
         try {
             info('get File');
-            $storagePath = storage_path('app/public/');
+            $storagePath = storage_path('app/public/documents');
             $file = File::glob($storagePath . $r->docName);
 
             info($file);
@@ -321,7 +355,7 @@ class CandidacyController extends Controller
     {
 
         try {
-            info('get Preselected candidacies '.$r->userProfile);
+            info('get Preselected candidacies ' . $r->userProfile);
             if ($r->userProfile == 'Evaluateur') {
                 $candidacies = Candidacy::select('candidats.*', 'preselections.pres_validation as preselection')
                     ->join('preselections', 'candidats.id', '=', 'preselections.candidature')
@@ -332,7 +366,6 @@ class CandidacyController extends Controller
                     ->get();
 
                 $evaluations = EvaluationFinale::select('id', 'candidature', 'total')->where('evaluateur', $r->userId)->get();
-
             } elseif ($r->userProfile == 'Admin' || $r->userProfile == 'Lecteur') {
                 $candidacies = Candidacy::select('candidats.*', 'preselections.pres_validation as preselection')
                     ->join('preselections', 'candidats.id', '=', 'preselections.candidature')
@@ -340,7 +373,6 @@ class CandidacyController extends Controller
                     ->get();
 
                 $evaluations = EvaluationFinale::select('id', 'candidature', 'total')->get();
-
             }
 
             $candidacies = $this->calulateAverage($candidacies, $evaluations);
@@ -388,7 +420,6 @@ class CandidacyController extends Controller
         }
         info('average Ok');
         return $candidacies;
-
     }
 
     public function getCandidacy(Request $r)
@@ -409,6 +440,7 @@ class CandidacyController extends Controller
             info('get Candidacy');
             if ($r->userProfile == 'Evaluateur') {
                 $candidacy = Candidacy::where('candidats.id', $r->candidacyId)->first();
+                info("Candidat sélectionné" . $candidacy);
                 $preselection = Preselection::where('candidature', $r->candidacyId)->first();
                 $evaluationFinale = EvaluationFinale::select('evaluationsfinales.*', 'users.name as evaluateurName')
                     ->where('candidature', $r->candidacyId)
@@ -442,7 +474,6 @@ class CandidacyController extends Controller
                     'candidacy' => $candidacy
                 ]);
             }
-
         } catch (\Throwable $th) {
             Log::error($th->getMessage());
             return response()->json([
@@ -452,7 +483,6 @@ class CandidacyController extends Controller
 
             ]);
         }
-
     }
 
     public function destroy(Request $r)
@@ -475,7 +505,6 @@ class CandidacyController extends Controller
                 'message' => "Candidature supprimée",
 
             ]);
-
         } catch (\Throwable $th) {
             Log::error($th->getMessage());
 
@@ -486,6 +515,4 @@ class CandidacyController extends Controller
             ]);
         }
     }
-
-
 }
