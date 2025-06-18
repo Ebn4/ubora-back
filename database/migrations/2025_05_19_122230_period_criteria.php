@@ -13,11 +13,16 @@ return new class extends Migration
     {
         Schema::create('period_criteria', function (Blueprint $table) {
             $table->id();
+            $table->string('type')->nullable();
+            $table->string('ponderation')->nullable();
             $table->foreignId('period_id')->constrained()->onUpdate('cascade')->onDelete('cascade');
             $table->foreignId('criteria_id')->constrained()->onUpdate('cascade')->onDelete('cascade');
+            $table->unique(['period_id', 'criteria_id']);
             $table->timestamps();
         });
     }
+
+    
 
     /**
      * Reverse the migrations.

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Criteria extends Model
 {
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'description', 'status'];
     protected $table = 'criterias';
 
     public function periods()
