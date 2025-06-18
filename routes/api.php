@@ -42,7 +42,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('period', PeriodController::class);
     Route::post('period-search', [PeriodController::class, 'search']);
     Route::apiResource('criteria', CriteriaController::class);
-    Route::post('periods/attach-criteria/{id}', [PeriodController::class, 'attachCriteriaToPeriod']);
+    Route::get('/period/join/criteria', [CriteriaController::class, 'getCriteriaWithPeriodData']);
+    Route::post('periods/attach-criteria/{id}', [CriteriaController::class, 'attachCriteriaToPeriod']);
     Route::get('periods/criteria/{id}', [PeriodController::class, 'getCriteriaForPeriod']);
 
 });
