@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthenticationController;
 use App\Http\Controllers\CandidacyController;
 use App\Http\Controllers\CriteriaController;
+use App\Http\Controllers\DispatchController;
 use App\Http\Controllers\EvaluationFinaleController;
 use App\Http\Controllers\EvaluatorController;
 use App\Http\Controllers\LdapUserController;
@@ -20,6 +21,7 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
 
+    Route::post("evaluators/{period}/dispatch", [DispatchController::class, 'dispatchPreselection']);
     Route::get('users/ldap/{user}', LdapUserController::class);
     Route::apiResource("evaluators", EvaluatorController::class);
 
