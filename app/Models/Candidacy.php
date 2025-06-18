@@ -5,6 +5,7 @@ namespace App\Models;
 use Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Candidacy extends Model
 {
@@ -59,4 +60,9 @@ class Candidacy extends Model
     protected $attribute = ['moyenne','evaluations_effectuées'];
 
     protected $table = 'candidats';
+
+    public function dispatch(): BelongsToMany
+    {
+        return $this->belongsToMany(Evaluator::class,'dispatch_preselections');
+    }
 }
