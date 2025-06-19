@@ -14,6 +14,20 @@ use Illuminate\Http\JsonResponse;
 class DispatchController extends Controller
 {
 
+    public function hasEvaluatorBeenDispatched(int $periodId)
+    {
+
+        $candidacies = Candidacy::query()
+            ->where("period_id", $periodId)
+            ->whereHas("dispatch")
+            ->exists();
+
+
+        return response()->json([
+            "isDispatch" => $candidacies
+        ]);
+    }
+
     public function dispatchPreselection(DispatchRequest $request): JsonResponse
     {
 
@@ -59,10 +73,7 @@ class DispatchController extends Controller
         return response()->json([
             "message" => "Le dispatch de la présélection a été effectué avec succès."
         ]);
-
     }
-
-
 }
 
 function dispatch($candidatesIds, $evaluatedIds): array
