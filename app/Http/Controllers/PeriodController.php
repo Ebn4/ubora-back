@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\PeriodStatusEnum;
+use App\Http\Requests\ChangePeriodStatusRequest;
 use App\Models\Period;
 use App\Models\StatusHistorique;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -53,8 +55,8 @@ class PeriodController extends Controller
         $yearNow = now()->year;
         $status = 'Dispatch';
 
-        if( isset($data['year']) && $data['year'] != null){
-            $yearNow= $data['year'];
+        if (isset($data['year']) && $data['year'] != null) {
+            $yearNow = $data['year'];
         }
 
         try {
@@ -100,5 +102,31 @@ class PeriodController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function changePeriodStatus(ChangePeriodStatusRequest $request, int $id)
+    {
+        $period = Period::findOrFail($id);
+        $currentStatus = $period->status;
+
+        $newStatus = $request->post('status');
+
+        $allowedTransitions = [
+            PeriodStatusEnum::STATUS_DISPATCH->value => PeriodStatusEnum::STATUS_INTERVIEW->value,
+            PeriodStatusEnum::STATUS_INTERVIEW->value => PeriodStatusEnum::STATUS_PRESELECTION->value,
+        ];
+
+        if (isset($allowedTransitions[$currentStatus]) && $allowedTransitions[$currentStatus] === $newStatus) {
+
+            $period->update([
+                "status" => $request->post('status')
+            ]);
+
+            return response()->json(['message' => 'Statut mis à jour avec succès.', 'period' => $period]);
+        }
+
+
+        return response()->json(['message' => 'Modification non autorisée pour ce statut.'], 403);
+
     }
 }

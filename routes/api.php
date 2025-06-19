@@ -21,6 +21,8 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
 
+    Route::put('periods/{period}/status', [PeriodController::class, 'changePeriodStatus']);
+    
     Route::get('evaluators/{period}/is-dispatched', [DispatchController::class, 'hasEvaluatorBeenDispatched']);
     Route::post("evaluators/{period}/dispatch", [DispatchController::class, 'dispatchPreselection']);
     Route::get('users/ldap/{user}', LdapUserController::class);
@@ -46,8 +48,4 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/period/join/criteria', [CriteriaController::class, 'getCriteriaWithPeriodData']);
     Route::post('periods/attach-criteria/{id}', [CriteriaController::class, 'attachCriteriaToPeriod']);
     Route::get('periods/criteria/{id}', [PeriodController::class, 'getCriteriaForPeriod']);
-
 });
-
-
-
