@@ -6,6 +6,7 @@ use App\Http\Requests\EvaluatorRequest;
 use App\Http\Resources\EvaluatorCandidaciesResource;
 use App\Http\Resources\EvaluatorRessource;
 use App\Models\Evaluator;
+use App\Models\User;
 use App\Services\EvaluatorService;
 use App\Services\UserLdapService;
 use App\Services\UserService;
@@ -19,9 +20,7 @@ class EvaluatorController extends Controller
         private EvaluatorService $evaluatorService,
         private UserService      $userService,
         private UserLdapService  $userLdapService
-    )
-    {
-    }
+    ) {}
 
     /**
      * Display a listing of the resource.
@@ -67,7 +66,14 @@ class EvaluatorController extends Controller
     {
         try {
             $ldapUser = $this->userLdapService->findUserByCuid($request->cuid);
-            $user = $this->userService->create($ldapUser->email, $ldapUser->cuid, "evaluator", $ldapUser->name);
+
+            $exists = User::where('email', $ldapUser->email)->exists();
+            if ($exists) {
+                $user = User::where('email', $ldapUser->email)->first();
+            } else {
+                $user = $this->userService->create($ldapUser->email, $ldapUser->cuid, "evaluator", $ldapUser->name);
+            }
+
             $this->evaluatorService->addEvaluator($user->id, $request->periodId, $request->type);
         } catch (\Exception $e) {
             throw  new HttpResponseException(
