@@ -21,6 +21,7 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
 
+    Route::get('evaluators/{period}/is-dispatched', [DispatchController::class, 'hasEvaluatorBeenDispatched']);
     Route::post("evaluators/{period}/dispatch", [DispatchController::class, 'dispatchPreselection']);
     Route::get('users/ldap/{user}', LdapUserController::class);
     Route::apiResource("evaluators", EvaluatorController::class);
