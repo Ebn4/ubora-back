@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\EvaluatorTypeEnum;
+use App\Enums\PeriodStatusEnum;
 use App\Http\Requests\DispatchRequest;
 use App\Models\Candidacy;
 use App\Models\Evaluator;
@@ -20,7 +21,7 @@ class DispatchController extends Controller
 
         $period = Period::query()->findOrFail($periodId);
 
-        if ($period->status != "dispatche") {
+        if ($period->status != PeriodStatusEnum::STATUS_DISPATCH->value) {
             throw new HttpResponseException(
                 response: response()->json([
                     "error" => "Vous n'avez plus le droit de dispatcher : la présélection a déjà commencé."
