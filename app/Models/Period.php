@@ -13,6 +13,7 @@ class Period extends Model
 
     public function criteria()
     {
-        return $this->belongsToMany(Criteria::class, 'period_criteria');
+        return $this->belongsToMany(Criteria::class, 'period_criteria')
+            ->withPivot('type');
     }
 }
