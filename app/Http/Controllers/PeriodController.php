@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\EvaluatorTypeEnum;
 use App\Enums\PeriodStatusEnum;
 use App\Http\Requests\ChangePeriodStatusRequest;
+use App\Http\Resources\CriteriaResource;
 use App\Models\Period;
 use App\Models\StatusHistorique;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -127,6 +129,30 @@ class PeriodController extends Controller
 
 
         return response()->json(['message' => 'Modification non autorisée pour ce statut.'], 403);
+    }
 
+    public function getCriteriaPeriod(Request $request, int $id)
+    {
+        try {
+
+            $type = EvaluatorTypeEnum::EVALUATOR_PRESELECTION->value;
+            if ($request->has('type') && $request->input('type') === 'SELECTION') {
+                $type = EvaluatorTypeEnum::EVALUATOR_SELECTION->value;
+            } elseif ($request->has('type') && $request->input('type') === 'PRESELECTION') {
+                $type = EvaluatorTypeEnum::EVALUATOR_PRESELECTION->value;
+            }
+       
+            $periods = Period::with(['criteria' => function ($query) use($type) {
+                $query->wherePivot('type', $type);
+            }])->findOrFail($id);
+
+            return CriteriaResource::collection($periods->criteria);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'code' => 500,
+                'description' => 'Erreur interne du serveur',
+                'message' => 'Erreur interne du serveur'
+            ]);
+        }
     }
 }
