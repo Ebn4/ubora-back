@@ -86,9 +86,7 @@ class EvaluatorController extends Controller
                 ->exists();
 
             if ($exists) {
-                throw new HttpResponseException(
-                    response()->json(['errors' => "User already exists as evaluator of type {$type}."], 400)
-                );
+                throw new \Exception("L'utilisateur est déjà enregistré en tant qu'évaluateur pour l'épreuve de {$type}.");
             }
 
             $this->evaluatorService->addEvaluator($user->id, $request->periodId, $type);
