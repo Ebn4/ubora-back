@@ -65,6 +65,7 @@ class EvaluatorController extends Controller
     public function store(EvaluatorRequest $request): void
     {
         try {
+            $type = $request->type; 
             $ldapUser = $this->userLdapService->findUserByCuid($request->cuid);
 
             $exists = User::where('email', $ldapUser->email)->exists();
@@ -74,7 +75,23 @@ class EvaluatorController extends Controller
                 $user = $this->userService->create($ldapUser->email, $ldapUser->cuid, "evaluator", $ldapUser->name);
             }
 
-            $this->evaluatorService->addEvaluator($user->id, $request->periodId, $request->type);
+            $exists = Evaluator::where('user_id', $user->id)
+                ->where(function ($query) use ($type) {
+                    if ($type === 'SELECTION') {
+                        $query->where('type', 'SELECTION');
+                    } elseif ($type === 'PRESELECTION') {
+                        $query->where('type', 'PRESELECTION');
+                    }
+                })
+                ->exists();
+
+            if ($exists) {
+                throw new HttpResponseException(
+                    response()->json(['errors' => "User already exists as evaluator of type {$type}."], 400)
+                );
+            }
+
+            $this->evaluatorService->addEvaluator($user->id, $request->periodId, $type);
         } catch (\Exception $e) {
             throw  new HttpResponseException(
                 response: response()->json(['errors' => $e->getMessage()], 400)
