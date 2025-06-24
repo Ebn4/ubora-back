@@ -114,8 +114,8 @@ class PeriodController extends Controller
         $newStatus = $request->post('status');
 
         $allowedTransitions = [
-            PeriodStatusEnum::STATUS_DISPATCH->value => PeriodStatusEnum::STATUS_INTERVIEW->value,
-            PeriodStatusEnum::STATUS_INTERVIEW->value => PeriodStatusEnum::STATUS_PRESELECTION->value,
+            PeriodStatusEnum::STATUS_DISPATCH->value => PeriodStatusEnum::STATUS_PRESELECTION->value,
+            PeriodStatusEnum::STATUS_PRESELECTION->value => PeriodStatusEnum::STATUS_SELECTION->value,
         ];
 
         if (isset($allowedTransitions[$currentStatus]) && $allowedTransitions[$currentStatus] === $newStatus) {
@@ -141,8 +141,8 @@ class PeriodController extends Controller
             } elseif ($request->has('type') && $request->input('type') === 'PRESELECTION') {
                 $type = EvaluatorTypeEnum::EVALUATOR_PRESELECTION->value;
             }
-       
-            $periods = Period::with(['criteria' => function ($query) use($type) {
+
+            $periods = Period::with(['criteria' => function ($query) use ($type) {
                 $query->wherePivot('type', $type);
             }])->findOrFail($id);
 
