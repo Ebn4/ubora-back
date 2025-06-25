@@ -2,12 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\EvaluatorTypeEnum;
+use App\Http\Requests\CandidateSelectionRequest;
 use App\Models\Candidacy;
+use App\Models\Criteria;
 use App\Models\EvaluationFinale;
+use App\Models\Evaluator;
+use App\Models\Interview;
 use App\Models\Period;
 use App\Models\Preselection;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -18,6 +24,7 @@ use Spatie\SimpleExcel\SimpleExcelReader;
 use App\Services\FileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\Rule;
+use function PHPUnit\Framework\isEmpty;
 
 class CandidacyController extends Controller
 {
@@ -48,7 +55,6 @@ class CandidacyController extends Controller
      *             @OA\Property(
      *                 property="success",
      *                 type="boolean"  
-
      *             )
      *         )
      *     )
@@ -170,7 +176,6 @@ class CandidacyController extends Controller
             ]);
         }
     }
-
 
 
     /**
@@ -455,7 +460,6 @@ class CandidacyController extends Controller
             }
 
 
-
             info('get Candidacy ok');
             if ($candidacy != '') {
                 return response()->json([
@@ -513,6 +517,57 @@ class CandidacyController extends Controller
                 'description' => 'Erreur',
                 'message' => 'Erreur interne du serveur'
             ]);
+        }
+    }
+
+    public function candidateSelections(CandidateSelectionRequest $request)
+    {
+
+        try {
+
+            DB::beginTransaction();
+
+            $interviewId = $request->post('interviewId');
+            $interview = Interview::query()->findOrFail($interviewId);
+
+            $evaluator = Evaluator::query()
+                ->where("user_id", auth()->user()->id)
+                ->firstOrFail();
+
+            if ($evaluator->type != EvaluatorTypeEnum::EVALUATOR_SELECTION->value) {
+                throw new \Exception("Action non autorisée : seul un évaluateur de sélection peut effectuer cette opération.");
+            }
+
+            foreach ($request->post('evaluations') as $evaluation) {
+                $criteria = Criteria::query()->findOrFail($evaluation['key']);
+                $result = $evaluation['value'];
+
+                if (!is_int($result) || !isset($result) || !isEmpty($result)) {
+                    throw new \Exception("Résultat illégal : la valeur fournie doit être un entier numérique.");
+                }
+
+                $interview->selectionResults()->attach([
+                    $criteria->id => [
+                        "evaluator_id" => $evaluator->id,
+                        "result" => $result
+                    ]
+                ]);
+            }
+
+            DB::commit();
+
+            return response()
+                ->json([
+                    "data" => true
+                ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw new HttpResponseException(
+                response: response(
+                    ["errors" => $e->getMessage()]
+                )
+            );
         }
     }
 }
