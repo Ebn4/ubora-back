@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Candidacy;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -11,10 +12,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('periods', function (Blueprint $table) {
+        Schema::create('interviews', function (Blueprint $table) {
             $table->id();
-            $table->integer('year')->unique();
-            $table->string('status')->default('dispatche');
+            $table->foreignIdFor(Candidacy::class)
+                ->constrained()
+                ->cascadeOnDelete();
             $table->timestamps();
         });
     }
@@ -24,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('periods');
+        Schema::dropIfExists('interviews');
     }
 };
