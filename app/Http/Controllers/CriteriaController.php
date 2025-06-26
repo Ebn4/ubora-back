@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\PeriodStatusEnum;
 use App\Http\Requests\periodCriteriaAttache;
 use App\Models\Criteria;
 use App\Models\Period;
@@ -13,24 +14,18 @@ use Illuminate\Support\Facades\DB;
 
 class CriteriaController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
         try {
             $query = Criteria::query();
-            if ($request->filled('search')) {
-                $search = $request->input('search');
-                $query->where(function ($q) use ($search) {
-                    $q->where('name', 'LIKE', "%{$search}%")
-                        ->orWhere('description', 'LIKE', "%{$search}%");
-                });
-            }
 
             if ($request->has('periodId') && $request->input('periodId') != null) {
                 $periodId = $request->input('periodId');
-                $query->leftJoin('period_criteria', function ($join) use ($periodId) {
+                $query=$query->leftJoin('period_criteria', function ($join) use ($periodId) {
                     $join->on('criterias.id', '=', 'period_criteria.criteria_id')
                         ->where('period_criteria.period_id', '=', $periodId);
                 })
+                    ->where('period_id', $request->input('periodId'))
                     ->where('criterias.status', '=', 'actif')
                     ->select(
                         'criterias.id',
@@ -41,17 +36,23 @@ class CriteriaController extends Controller
                         'period_criteria.ponderation'
                     );
 
-
-
-                $query = $query->where('period_id', $request->input('periodId'));
+                if ($request->has('type')) {
+                    $type = $request->input('type');
+                    $query= $query->where('period_criteria.type', "{$type}");
+                }
             }
-            $perPage = $request->input('per_page', 3);
+
+            if ($request->has('search')) {
+                $search = $request->input('search');
+                $query=$query->where(function ($q) use ($search) {
+                    $q->where('name', 'LIKE', "%{$search}%")
+                        ->orWhere('description', 'LIKE', "%{$search}%");
+                });
+            }
+            $perPage = $request->input('per_page', 5);
             $query = $query->paginate($perPage);
 
-            return response()->json([
-                'success' => true,
-                'data' => $query
-            ]);
+            return $query;
         } catch (\Throwable $th) {
             Log::error($th);
             return response()->json([
@@ -67,11 +68,10 @@ class CriteriaController extends Controller
         $request->validate([
             'name' => 'required|string',
             'description' => 'nullable|string',
-            'status' => 'actif'
         ]);
 
         try {
-            $criteria = Criteria::create($request->only(['name', 'description']));
+            $criteria = Criteria::create(array_merge($request->only(['name', 'description']), ['status' => 'status']));
 
             return response()->json([
                 'success' => true,
@@ -87,21 +87,15 @@ class CriteriaController extends Controller
         }
     }
 
-    public function show(int $id): JsonResponse
+    public function show(int $id)
     {
         $criteria = Criteria::find($id);
 
         if (!$criteria) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Critère non trouvé.'
-            ], 404);
+            return 'Critère non trouvé.';
         }
-
-        return response()->json([
-            'success' => true,
-            'data' => $criteria
-        ]);
+        
+        return $criteria;
     }
 
     public function update(Request $request, int $id): JsonResponse
@@ -176,20 +170,19 @@ class CriteriaController extends Controller
     {
         try {
             $period = Period::findOrFail($periodId);
-            if ($period->status != 'Dispatch') {
+            if ($period->status != PeriodStatusEnum::STATUS_DISPATCH->value) {
                 return response()->json([
-                'success' => false,
-                'message' => 'Impossible d\'exécuter cette action car le status n\'est plus en dispatch.',
-            ], 500);
+                    'success' => false,
+                    'message' => 'Impossible d\'exécuter cette action car le status n\'est plus en dispatch.',
+                ], 500);
             } else {
                 $period->criteria()->wherePivot('type', $request->type)->detach();
-
                 $pivotData = [];
 
-                foreach ($request->criteria as $criterion) {
-                    $pivotData[$criterion['id']] = [
+                foreach ($request->criteria as $critere) {
+                    $pivotData[$critere['id']] = [
                         'type' => $request->type,
-                        'ponderation' => $criterion['ponderation'],
+                        'ponderation' => $critere['ponderation'],
                     ];
                 }
 
