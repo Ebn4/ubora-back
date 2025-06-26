@@ -16,13 +16,17 @@ use App\Http\Controllers\UserController;
 Route::post('login', [AuthenticationController::class, 'login']);
 Route::apiResource('users', UserController::class)->only(['store']);
 
+
+Route::get('periods/{period}/criteria', [PeriodController::class, 'getCriteriaPeriod']);
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
 
+    Route::post('candidate/selections', [CandidacyController::class, 'candidateSelections']);
     Route::put('periods/{period}/status', [PeriodController::class, 'changePeriodStatus']);
-    
+
     Route::get('evaluators/{period}/is-dispatched', [DispatchController::class, 'hasEvaluatorBeenDispatched']);
     Route::post("evaluators/{period}/dispatch", [DispatchController::class, 'dispatchPreselection']);
     Route::get('users/ldap/{user}', LdapUserController::class);
