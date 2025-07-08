@@ -5,11 +5,14 @@ namespace App\Http\Controllers;
 use App\Enums\EvaluatorTypeEnum;
 use App\Enums\PeriodStatusEnum;
 use App\Http\Requests\DispatchRequest;
+use App\Http\Requests\CandidaciesDispatchEvaluator;
 use App\Models\Candidacy;
 use App\Models\Evaluator;
 use App\Models\Period;
+use App\Models\Preselection;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class DispatchController extends Controller
 {
@@ -73,6 +76,50 @@ class DispatchController extends Controller
         return response()->json([
             "message" => "Le dispatch de la présélection a été effectué avec succès."
         ]);
+    }
+
+    public function CandidaciesDispatchByEvaluator(CandidaciesDispatchEvaluator $request)
+    {
+        $evaluateurId = $request->input("evaluateurId");
+        $query = Evaluator::find($evaluateurId)?->candidats();
+
+        if ($request->has('search') && $request->input('search') != null) {
+            $search = $request->input('search');
+
+            $query = $query->where(function ($q) use ($search) {
+                $q->where('etn_nom', 'like', "%$search%")
+                    ->orWhere('etn_prenom', 'like', "%$search%")
+                    ->orWhere('etn_postnom', 'like', "%$search%")
+                    ->orWhere('ville', 'like', "%$search%");
+            });
+        }
+
+        if ($request->has('ville') && $request->input('ville') != null) {
+            $ville = $request->input('ville');
+            $query = $query->where('ville', 'LIKE', "%{$ville}%");
+        }
+
+        $candidaciesPreselection = Preselection::distinct('dispatch_preselections_id')->count('dispatch_preselections_id');
+        $count = $query->count();
+
+        $perPage = $request->input('per_page', 5);
+        $paginated = $query->paginate($perPage);
+
+        try {
+            $paginated->getCollection()->transform(function ($item) use ($candidaciesPreselection, $count) {
+                $item->candidaciesPreselection = $candidaciesPreselection;
+                $item->totalCandidats = $count;
+                return $item;
+            });
+
+            return $paginated;
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Une erreur est survenue lors de la récupération des périodes.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }
 
