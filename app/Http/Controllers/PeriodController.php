@@ -14,7 +14,7 @@ use Illuminate\Http\JsonResponse;
 
 class PeriodController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
         $query = Period::orderBy('year', 'desc');
 
@@ -28,22 +28,10 @@ class PeriodController extends Controller
             $query->where('status', 'LIKE', "%{$status}%");
         }
 
-        $perPage = $request->input('per_page', 3);
+        $perPage = $request->input('per_page', 5);
 
-        try {
-            $paginated = $query->paginate($perPage);
-
-            return response()->json([
-                'success' => true,
-                'data' => $paginated
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Une erreur est survenue lors de la récupération des périodes.',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+        $paginated = $query->paginate($perPage);
+        return $paginated;
     }
 
 
@@ -84,14 +72,11 @@ class PeriodController extends Controller
         }
     }
 
-    public function show(int $id): JsonResponse
+    public function show(int $id)
     {
         try {
-            $period = Period::findOrFail($id);
-            return response()->json([
-                'success' => true,
-                'data' => $period
-            ]);
+            $period = Period::withCount('evaluators', 'criteria', 'candidats')->findOrFail($id);
+            return $period;
         } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
@@ -105,6 +90,7 @@ class PeriodController extends Controller
             ], 500);
         }
     }
+
 
     public function changePeriodStatus(ChangePeriodStatusRequest $request, int $id)
     {
