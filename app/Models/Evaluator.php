@@ -13,7 +13,13 @@ class Evaluator extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function period(): \Illuminate\Database\Eloquent\Relations\BelongsTo{
+    public function period(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
         return $this->belongsTo(Period::class);
+    }
+
+    public function candidacies(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Candidacy::class, 'dispatch_preselections');
     }
 }

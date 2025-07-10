@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\EvaluatorRequest;
+use App\Http\Resources\CandidacyResource;
 use App\Http\Resources\EvaluatorCandidaciesResource;
 use App\Http\Resources\EvaluatorRessource;
 use App\Models\Evaluator;
@@ -20,7 +21,9 @@ class EvaluatorController extends Controller
         private EvaluatorService $evaluatorService,
         private UserService      $userService,
         private UserLdapService  $userLdapService
-    ) {}
+    )
+    {
+    }
 
     /**
      * Display a listing of the resource.
@@ -65,7 +68,7 @@ class EvaluatorController extends Controller
     public function store(EvaluatorRequest $request): void
     {
         try {
-            $type = $request->type; 
+            $type = $request->type;
             $ldapUser = $this->userLdapService->findUserByCuid($request->cuid);
 
             $exists = User::where('email', $ldapUser->email)->exists();
@@ -102,7 +105,9 @@ class EvaluatorController extends Controller
      */
     public function show(string $id): EvaluatorRessource
     {
-        $evaluator = Evaluator::query()->findOrFail($id);
+        $evaluator = Evaluator::query()
+            ->with(["candidacies"])
+            ->findOrFail($id);
         return new EvaluatorRessource($evaluator);
     }
 
@@ -129,5 +134,15 @@ class EvaluatorController extends Controller
             ->findOrFail($id);
 
         return EvaluatorCandidaciesResource::collection($candidacies->dispatch);
+    }
+
+    public function getEvaluatorCandidacies(int $evaluatorId): AnonymousResourceCollection
+    {
+        $candidacies = Evaluator::query()
+            ->with("candidacies")
+            ->findOrFail($evaluatorId)
+            ->candidacies;
+
+        return CandidacyResource::collection($candidacies);
     }
 }

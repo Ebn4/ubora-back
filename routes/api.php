@@ -27,6 +27,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('candidate/selections', [CandidacyController::class, 'candidateSelections']);
     Route::put('periods/{period}/status', [PeriodController::class, 'changePeriodStatus']);
 
+    Route::get("evaluators/{id}/candidacies", [EvaluatorController::class, 'getEvaluatorCandidacies']);
     Route::get('evaluators/{period}/is-dispatched', [DispatchController::class, 'hasEvaluatorBeenDispatched']);
     Route::post("evaluators/{period}/dispatch", [DispatchController::class, 'dispatchPreselection']);
     Route::get('users/ldap/{user}', LdapUserController::class);
