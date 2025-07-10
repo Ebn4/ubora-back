@@ -12,10 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('preselections', function (Blueprint $table) {
-            $table->foreignId('period_criteria_id')->constrained()->onUpdate('cascade')->onDelete('cascade');
+            $table->foreignId('period_criteria_id')
+                ->references('id')
+                ->on('period_criteria');
             $table->foreignId('dispatch_preselections_id')->constrained()->onUpdate('cascade')->onDelete('cascade');
             $table->boolean('valeur')->nullable();
-            $table->unique(['period_criteria_id', 'dispatch_preselections_id']);
+            $table->unique(['period_criteria_id', 'dispatch_preselections_id'],'pres_period_dispatch_unique');
         });
     }
 
