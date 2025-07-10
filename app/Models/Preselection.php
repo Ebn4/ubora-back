@@ -15,16 +15,9 @@ class Preselection extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'candidature',
-        'critere_nationalite',
-        'critere_age',
-        'critere_annee_diplome_detat',
-        'critere_pourcentage',
-        'critere_cursus_choisi',
-        'critere_universite_institution_choisie',
-        'critere_cycle_etude',
-        'pres_commentaire',
-        'pres_validation',
+        'period_criteria_id',
+        'dispatch_preselections_id',
+        'valeur'
     ];
 
     protected $table = 'preselections';
