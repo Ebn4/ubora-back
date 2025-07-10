@@ -94,7 +94,7 @@ class CriteriaController extends Controller
         if (!$criteria) {
             return 'Critère non trouvé.';
         }
-        
+
         return $criteria;
     }
 
@@ -230,7 +230,8 @@ class CriteriaController extends Controller
                     'criterias.description',
                     'criterias.status',
                     'period_criteria.type',
-                    'period_criteria.ponderation'
+                    'period_criteria.ponderation',
+                    'period_criteria.id as period_criteria_id'
                 );
 
             if ($request->filled('search')) {
