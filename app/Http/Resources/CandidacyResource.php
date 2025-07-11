@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Models\DispatchPreselection;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class CandidacyResource extends JsonResource
@@ -54,7 +55,7 @@ class CandidacyResource extends JsonResource
             "updated_at" => $this->updated_at,
             "period_id" => $this->period_id,
             "evaluators" => $this->dispatch,
-            "nb_evaluation" => DispatchPreselection::where('candidacy_id', $this->id)->has("preselections")->get()->count
+            "nb_evaluation" => DispatchPreselection::where('candidacy_id', $this->id)->has("preselections")->get()->count()
         ];
     }
 }

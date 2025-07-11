@@ -6,6 +6,7 @@ use App\Enums\EvaluatorTypeEnum;
 use App\Enums\PeriodStatusEnum;
 use App\Http\Requests\ChangePeriodStatusRequest;
 use App\Http\Resources\CriteriaResource;
+use App\Http\Resources\PeriodResource;
 use App\Models\Period;
 use App\Models\StatusHistorique;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -31,7 +32,8 @@ class PeriodController extends Controller
         $perPage = $request->input('per_page', 5);
 
         $paginated = $query->paginate($perPage);
-        return $paginated;
+        //return $paginated;
+        return PeriodResource::collection($paginated);
     }
 
 
@@ -43,7 +45,7 @@ class PeriodController extends Controller
         ]);
 
         $yearNow = now()->year;
-        $status = 'Dispatch';
+        $status = PeriodStatusEnum::STATUS_DISPATCH->value;
 
         if (isset($data['year']) && $data['year'] != null) {
             $yearNow = $data['year'];
@@ -75,8 +77,8 @@ class PeriodController extends Controller
     public function show(int $id)
     {
         try {
-            $period = Period::withCount('evaluators', 'criteria', 'candidats')->findOrFail($id);
-            return $period;
+            $period = Period::findOrFail($id);
+            return new PeriodResource($period);
         } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
