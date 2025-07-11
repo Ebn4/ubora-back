@@ -267,20 +267,9 @@ class CandidacyController extends Controller
 
             $perPage = $request->input('per_page', 5);
 
-            $nombreInstitutionsDifferentes = DB::table('candidats')
-                ->where('period_id', $periodId)
-                ->distinct('universite_institut_sup')
-                ->count('universite_institut_sup');
+            $paginated = $query->paginate($perPage);
 
-            $paginatedResult = $query->paginate($perPage);
-
-            $paginatedResult->getCollection()->transform(function ($item) use ($nombreInstitutionsDifferentes) {
-                $item->nombre_institutions_differentes = $nombreInstitutionsDifferentes;
-                return $item;
-            });
-
-            // Retourner la réponse avec les résultats paginés et le nombre d'institutions
-            return response()->json($paginatedResult);
+            return CandidacyResource::collection($paginated);
         } catch (\Throwable $th) {
             Log::error($th);
             return response()->json([
