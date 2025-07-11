@@ -81,7 +81,7 @@ class DispatchController extends Controller
     public function CandidaciesDispatchByEvaluator(CandidaciesDispatchEvaluator $request)
     {
         $evaluateurId = $request->input("evaluateurId");
-        $query = Evaluator::find($evaluateurId)?->candidats();
+        $query = Evaluator::find($evaluateurId)?->candidacies();
 
         if ($request->has('search') && $request->input('search') != null) {
             $search = $request->input('search');
