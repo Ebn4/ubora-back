@@ -68,7 +68,7 @@ class CandidacyController extends Controller
 
         try {
             $rows = $validated['rows'];
-            $year = $validated['year'] ?? now()->year;
+            $year = $request->input('year');
             $currentYear = Carbon::createFromFormat('Y', $year);
             $processedEmails = [];
 
@@ -95,10 +95,14 @@ class CandidacyController extends Controller
                             continue;
                         }
 
-                        if (Candidacy::where('etn_email', $email)->exists()) {
-                            Log::info("Ligne $index ignorée : email déjà existant en base → $email");
+                        if (Candidacy::where('etn_email', $email)
+                            ->where('period_id', $period->id)
+                            ->exists()
+                        ) {
+                            Log::info("Ligne $index ignorée : email déjà existant pour cette période en base → $email");
                             continue;
                         }
+
 
                         $processedEmails[] = $email;
 
