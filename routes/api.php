@@ -38,6 +38,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('candidacies', CandidacyController::class)->only(['index', 'destroy']);
     Route::apiResource('evaluationFinale', EvaluationFinaleController::class)->except(['index', 'show']);
     Route::apiResource('preselection', PreselectionController::class)->except(['index', 'show']);
+    Route::get('getPreselectionsForDispatch/{dispatchId}', [PreselectionController::class, 'getPreselectionsForDispatch']);
 
     Route::post('logout', [AuthenticationController::class, 'logout']);
 

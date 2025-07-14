@@ -8,52 +8,63 @@ use Illuminate\Support\Facades\Log;
 
 class PreselectionController extends Controller
 {
-    public function store(Request $r){
-        try {
-            info('create préselection');
-            $preselection = Preselection::create([
-                'candidature' => $r->candidacyId,
-                'critere_nationalite' => $r->crt_nationalite,
-                'critere_age'  => $r->crt_age,
-                'critere_annee_diplome_detat'  => $r->crt_annee_diplome,
-                'critere_pourcentage'  => $r->crt_pourcentage,
-                'critere_cursus_choisi'  => $r->crt_cursus_choisi,
-                'critere_universite_institution_choisie' => $r->crt_univeriste_institution,
-                'critere_cycle_etude'  => $r->crt_cycle_etude,
-                'pres_commentaire' => $r->pres_commentaire,
-                'pres_validation' => $r->pres_validate,
-            ]);
+    public function getPreselectionsForDispatch(int $dispatchId)
+    {
+        $preselection = Preselection::where("dispatch_preselections_id", $dispatchId)->first();
 
-
-            if ($preselection->id) {
-                info('preselection saved: ' . $preselection->id);
-
-                /* return redirect()->route('users')->with("action_success", 'Utilisateur enregistré')->with('modal', true); */
-                return response()->json([
-                    'code' => 200,
-                    'description' => "Success",
-                    'message' => "Préselection enregistrée"
-                ]);
-            } else {
-                info("Erreur lors de l'enregistrement");
-                /* return redirect()->route('users')->with("action_error", "Erreur lors de l'enregistrement")->with('modal', true); */
-                return response()->json([
-                    'code' => 400,
-                    'description' => "Erreur interne du serveur",
-                    'message' => "Erreur lors de l'enregistrement"
-                ]);
-            }
-        } catch (\Throwable $th) {
-            Log::error($th->getMessage());
+        if ($preselection) {
             return response()->json([
-                'code' => 500,
-                'description' => "Erreur interne du serveur",
-                'message' => "Erreur interne du serveur"
+                "success" => true,
+                "data" => $preselection->toArray()
             ]);
+        }
+
+        return response()->json([
+            "success" => false,
+            "message" => "Preselection not found",
+            "data" => []
+        ]);
+    }
+
+
+    public function store(Request $request)
+    {
+        Log::info('Données reçues pour pré-sélection : ', $request->all());
+
+        try {
+            $validated = $request->validate([
+                '*.period_criteria_id' => 'required|integer|exists:period_criteria,id',
+                '*.dispatch_preselections_id' => 'required|integer|exists:dispatch_preselections,id',
+                '*.valeur' => 'required|boolean',
+            ]);
+
+            $preselections = [];
+            foreach ($validated as $data) {
+                $preselections[] = [
+                    'period_criteria_id' => $data['period_criteria_id'],
+                    'dispatch_preselections_id' => $data['dispatch_preselections_id'],
+                    'valeur' => $data['valeur']
+                ];
+            }
+
+            Preselection::insert($preselections);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pré-sélections enregistrées avec succès',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de l\'enregistrement des pré-sélections : ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de l\'enregistrement des pré-sélections',
+            ], 500);
         }
     }
 
-    public function update(Request $r){
+    public function update(Request $r)
+    {
         try {
             info("update préselection");
             $preselection = Preselection::find($r->preselectionId);
@@ -100,7 +111,8 @@ class PreselectionController extends Controller
         }
     }
 
-    public function destroy(Request $r){
+    public function destroy(Request $r)
+    {
         try {
             info("deleting préselection");
             $user = Preselection::destroy($r->preselectionId);
@@ -120,6 +132,5 @@ class PreselectionController extends Controller
                 'message' =>  'Erreur interne du serveur'
             ]);
         }
-
     }
 }
