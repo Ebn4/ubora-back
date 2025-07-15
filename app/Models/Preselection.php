@@ -17,7 +17,7 @@ class Preselection extends Model
     protected $fillable = [
         'period_criteria_id',
         'dispatch_preselections_id',
-        'valeur'
+        'valeurvaleur'
     ];
 
     protected $table = 'preselections';
@@ -25,5 +25,10 @@ class Preselection extends Model
     public function periodCriteria(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(PeriodCriteria::class);
+    }
+
+    public function dispatchPreselection(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(DispatchPreselection::class);
     }
 }

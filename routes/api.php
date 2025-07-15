@@ -19,12 +19,13 @@ Route::apiResource('users', UserController::class)->only(['store']);
 
 Route::get('periods/{period}/criteria', [PeriodController::class, 'getCriteriaPeriod']);
 
-Route::get('preselection/periods/{period}/validate', [PreselectionController::class, 'canValidatePreselection']);
-
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
+
+    Route::get('preselection/periods/{period}/validate', [PreselectionController::class, 'canValidatePreselection']);
+    Route::post('preselection/periods/{period}/validate', [PreselectionController::class, 'validatePreselection']);
 
     Route::post('candidate/selections', [CandidacyController::class, 'candidateSelections']);
     Route::put('periods/{period}/status', [PeriodController::class, 'changePeriodStatus']);
@@ -57,4 +58,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/period/join/criteria', [CriteriaController::class, 'getCriteriaWithPeriodData']);
     Route::post('periods/attach-criteria/{id}', [CriteriaController::class, 'attachCriteriaToPeriod']);
     Route::get('periods/criteria/{id}', [PeriodController::class, 'getCriteriaForPeriod']);
+
 });
