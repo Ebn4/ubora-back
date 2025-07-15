@@ -70,12 +70,12 @@ class PreselectionController extends Controller
             $preselection = Preselection::find($r->preselectionId);
 
             $preselection->critere_nationalite = $r->crt_nationalite;
-            $preselection->critere_age  = $r->crt_age;
+            $preselection->critere_age = $r->crt_age;
             $preselection->critere_annee_diplome_detat = $r->crt_annee_diplome;
-            $preselection->critere_pourcentage  = $r->crt_pourcentage;
-            $preselection->critere_cursus_choisi  = $r->crt_cursus_choisi;
+            $preselection->critere_pourcentage = $r->crt_pourcentage;
+            $preselection->critere_cursus_choisi = $r->crt_cursus_choisi;
             $preselection->critere_universite_institution_choisie = $r->crt_univeriste_institution;
-            $preselection->critere_cycle_etude  = $r->crt_cycle_etude;
+            $preselection->critere_cycle_etude = $r->crt_cycle_etude;
             $preselection->pres_commentaire = $r->pres_commentaire;
             $preselection->pres_validation = $r->pres_validate;
 
@@ -106,7 +106,7 @@ class PreselectionController extends Controller
             return response()->json([
                 'code' => 500,
                 'description' => 'Erreur',
-                'message' =>  'Erreur interne du serveur'
+                'message' => 'Erreur interne du serveur'
             ]);
         }
     }
@@ -129,8 +129,20 @@ class PreselectionController extends Controller
             return response()->json([
                 'code' => 500,
                 'description' => 'Erreur',
-                'message' =>  'Erreur interne du serveur'
+                'message' => 'Erreur interne du serveur'
             ]);
         }
+    }
+
+    public function canValidatePreselection(int $periodId): \Illuminate\Http\JsonResponse
+    {
+        $canValidate = Preselection::query()
+            ->whereHas('periodCriteria', function ($query) use ($periodId) {
+                $query->where('period_id', $periodId);
+            })->exists();
+
+        return response()->json([
+            "canValidate" => $canValidate,
+        ]);
     }
 }

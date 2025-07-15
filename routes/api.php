@@ -19,6 +19,8 @@ Route::apiResource('users', UserController::class)->only(['store']);
 
 Route::get('periods/{period}/criteria', [PeriodController::class, 'getCriteriaPeriod']);
 
+Route::get('preselection/periods/{period}/validate', [PreselectionController::class, 'canValidatePreselection']);
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();

@@ -21,4 +21,9 @@ class Preselection extends Model
     ];
 
     protected $table = 'preselections';
+
+    public function periodCriteria(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(PeriodCriteria::class);
+    }
 }
