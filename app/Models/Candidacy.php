@@ -65,4 +65,9 @@ class Candidacy extends Model
     {
         return $this->belongsToMany(Evaluator::class,'dispatch_preselections');
     }
+
+    public function dispatchPreselections(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(DispatchPreselection::class);
+    }
 }
