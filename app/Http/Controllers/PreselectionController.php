@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Candidacy;
+use App\Models\Interview;
 use App\Models\Preselection;
+use http\Env\Response;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -144,5 +147,30 @@ class PreselectionController extends Controller
         return response()->json([
             "canValidate" => $canValidate,
         ]);
+    }
+
+    public function validatePreselection(Request $r, int $periodId): \Illuminate\Http\JsonResponse
+    {
+        $candidacies = Candidacy::query()
+            ->whereHas('dispatchPreselections.preselections.periodCriteria', function ($query) use ($periodId) {
+                $query->where('period_id', $periodId);
+            })
+            ->whereDoesntHave('dispatchPreselections.preselections', function ($query) use ($periodId) {
+                $query->whereHas('periodCriteria', function ($q) use ($periodId) {
+                    $q->where('period_id', $periodId);
+                })->where('valeur', false);
+            })
+            ->get();
+
+        foreach ($candidacies as $candidacy) {
+            Interview::query()->create([
+                'candidacy_id' => $candidacy->id,
+            ]);
+        }
+
+        return response()
+            ->json([
+                "message" => "La validation de la présélection s’est effectuée avec succès.",
+            ]);
     }
 }
