@@ -24,22 +24,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('has-admin-role', HasAdminRoleController::class);
 
-    Route::get('periods/{period}/criteria', [PeriodController::class, 'getCriteriaPeriod']);
-
     Route::post('candidate/selections', [CandidacyController::class, 'candidateSelections']);
     Route::get("evaluators/{id}/candidacies", [EvaluatorController::class, 'getEvaluatorCandidacies']);
-<<<<<<< Updated upstream
-    Route::get('evaluators/{period}/is-dispatched', [DispatchController::class, 'hasEvaluatorBeenDispatched']);
-    Route::post("evaluators/{period}/dispatch", [DispatchController::class, 'dispatchPreselection']);
-    Route::get("CandidaciesDispatchEvaluator", [DispatchController::class, 'CandidaciesDispatchByEvaluator']);
-    Route::post("sendDispatchNotification", [DispatchController::class, 'sendDispatchNotification']);
-    Route::get('users/ldap/{user}', LdapUserController::class);
-    Route::apiResource("evaluators", EvaluatorController::class);
-=======
->>>>>>> Stashed changes
 
-    Route::apiResource('candidacies', CandidacyController::class)->only(['index', 'destroy']);
-    Route::apiResource('evaluationFinale', EvaluationFinaleController::class)->except(['index', 'show']);
     Route::apiResource('preselection', PreselectionController::class)->except(['index', 'show']);
 
     Route::get('getPreselectionsForDispatch/{dispatchId}', [PreselectionController::class, 'getPreselectionsForDispatch']);
@@ -47,18 +34,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('logout', [AuthenticationController::class, 'logout']);
 
     Route::get('/getDoc', [CandidacyController::class, "getDoc"]);
-    Route::get('/getPreselectedCandidacies', [CandidacyController::class, "getPreselectedCandidacies"]);
-    Route::get('/getCandidacy', [CandidacyController::class, "getCandidacy"]);
-
-    Route::post('/saveEvaluators', [EvaluationFinaleController::class, "saveEvaluators"]);
-    Route::apiResource('period', PeriodController::class);
-    Route::post('period-search', [PeriodController::class, 'search']);
-    Route::apiResource('criteria', CriteriaController::class);
 
     Route::middleware("admin")->group(function () {
+
+        Route::apiResource('criteria', CriteriaController::class);
+        Route::apiResource('period', PeriodController::class);
         Route::apiResource("evaluators", EvaluatorController::class);
         Route::apiResource('users', UserController::class)->except(['store']);
+        Route::apiResource('candidacies', CandidacyController::class)->only(['index', 'destroy']);
 
+        Route::get('periods/{period}/criteria', [PeriodController::class, 'getCriteriaPeriod']);
         Route::put('periods/{period}/status', [PeriodController::class, 'changePeriodStatus']);
 
         Route::get('preselection/periods/{period}/validate', [PreselectionController::class, 'canValidatePreselection']);
@@ -75,6 +60,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/period/join/criteria', [CriteriaController::class, 'getCriteriaWithPeriodData']);
         Route::post('periods/attach-criteria/{id}', [CriteriaController::class, 'attachCriteriaToPeriod']);
         Route::get('periods/criteria/{id}', [PeriodController::class, 'getCriteriaForPeriod']);
+
     });
 
 });
