@@ -79,11 +79,13 @@ class EvaluatorController extends Controller
             }
 
             $exists = Evaluator::where('user_id', $user->id)
-                ->where(function ($query) use ($type) {
+                ->where(function ($query) use ($type, $request) {
                     if ($type === 'SELECTION') {
-                        $query->where('type', 'SELECTION');
+                        $query->where('type', 'SELECTION')
+                            ->where('period_id', $request->periodId);
                     } elseif ($type === 'PRESELECTION') {
-                        $query->where('type', 'PRESELECTION');
+                        $query->where('type', 'PRESELECTION')
+                            ->where('period_id', $request->periodId);
                     }
                 })
                 ->exists();
