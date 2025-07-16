@@ -7,12 +7,14 @@ use App\Enums\PeriodStatusEnum;
 use App\Http\Requests\DispatchRequest;
 use App\Http\Requests\CandidaciesDispatchEvaluator;
 use App\Models\Candidacy;
+use App\Models\DispatchPreselection;
 use App\Models\Evaluator;
 use App\Models\Period;
 use App\Models\Preselection;
+use App\Notifications\DispatchNotification;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
 
 class DispatchController extends Controller
 {
@@ -120,6 +122,20 @@ class DispatchController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function sendDispatchNotification()
+    {
+        $preselections = DispatchPreselection::with('evaluator.user')->get();
+
+        $users = $preselections->map(function ($preselection) {
+            return $preselection->evaluator?->user;
+        })->filter()->unique('id');
+
+        $urlFront = 'http://localhost:4200';
+
+        Notification::send($users, new DispatchNotification($urlFront));
+        return response()->json(['success' => true, 'message' => 'Notifications envoyées.']);
     }
 }
 
