@@ -20,6 +20,6 @@ class Evaluator extends Model
 
     public function candidacies(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
-        return $this->belongsToMany(Candidacy::class, 'dispatch_preselections');
+        return $this->belongsToMany(Candidacy::class, 'dispatch_preselections')->withPivot('id');
     }
 }
