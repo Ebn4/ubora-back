@@ -5,13 +5,34 @@ namespace App\Http\Controllers;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 
 class UserController extends Controller
 {
-    public function index(Request $r): \Illuminate\Http\Resources\Json\AnonymousResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
-        $users = User::all();
+
+        $perPage = 10;
+        $users = User::query();
+
+        if ($request->has('perPage')) {
+            $perPage = $request->input('perPage');
+        }
+
+        if ($request->has('search')) {
+            $search = $request->input('search');
+            $users = $users->whereLike('name', "%$search%")
+                ->orWhereLike('email', "%$search%");
+
+        }
+
+        if ($request->has('role')) {
+            $role = $request->input('role');
+            $users = $users->whereLike('role', "%$role%");
+        }
+
+        $users = $users->paginate($perPage);
         return UserResource::collection($users);
     }
 
