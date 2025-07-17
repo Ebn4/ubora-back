@@ -488,4 +488,17 @@ class CandidacyController extends Controller
 
         return new InterviewResource($interview);
     }
+
+    public function candidateHasSelection(int $id): \Illuminate\Http\JsonResponse
+    {
+        $hasSelection = Interview::query()
+            ->where("candidacy_id", $id)
+            ->whereHas("selectionResults")
+            ->exists();
+
+        return response()
+            ->json([
+                "hasSelection" => $hasSelection
+            ]);
+    }
 }
