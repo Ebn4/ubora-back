@@ -83,6 +83,7 @@ class DispatchController extends Controller
     public function CandidaciesDispatchByEvaluator(CandidaciesDispatchEvaluator $request)
     {
         $evaluateurId = $request->input("evaluateurId");
+
         $query = Evaluator::find($evaluateurId)?->candidacies();
 
         if ($request->has('search') && $request->input('search') != null) {
@@ -101,16 +102,26 @@ class DispatchController extends Controller
             $query = $query->where('ville', 'LIKE', "%{$ville}%");
         }
 
-        $candidaciesPreselection = DispatchPreselection::where('evaluator_id', $evaluateurId)->has("preselections")->get()->count();
+        $candidaciesPreselection = DispatchPreselection::where('evaluator_id', $evaluateurId)
+            ->has("preselections")
+            ->count();
+
         $count = $query->count();
 
         $perPage = $request->input('per_page', 5);
         $paginated = $query->paginate($perPage);
 
         try {
-            $paginated->getCollection()->transform(function ($item) use ($candidaciesPreselection, $count) {
+            $paginated->getCollection()->transform(function ($item) use ($candidaciesPreselection, $count, $evaluateurId) {
+                $statusCandidacy = DispatchPreselection::where('candidacy_id', $item->id)
+                    ->where('evaluator_id', $evaluateurId)
+                    ->has('preselections')
+                    ->exists();
+
                 $item->candidaciesPreselection = $candidaciesPreselection;
+                $item->statusCandidacy = $statusCandidacy;
                 $item->totalCandidats = $count;
+
                 return $item;
             });
 
