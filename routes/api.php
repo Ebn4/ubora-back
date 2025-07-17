@@ -55,6 +55,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post("evaluators/{period}/dispatch", [DispatchController::class, 'dispatchPreselection']);
         Route::get('users/ldap/{user}', LdapUserController::class);
 
+        Route::get('/candidates/{id}/interviews', [CandidacyController::class, "getCandidateInterview"]);
         Route::post('/uploadCandidacies', [CandidacyController::class, "uploadCandidacies"]);
         Route::post('/uploadCandidaciesDocs', [CandidacyController::class, "uploadCandidaciesDocs"]);
         Route::post('periods/attach-criteria/{id}', [CriteriaController::class, 'attachCriteriaToPeriod']);

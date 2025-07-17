@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\EvaluatorTypeEnum;
 use App\Http\Requests\CandidateSelectionRequest;
 use App\Http\Resources\CandidacyResource;
+use App\Http\Resources\InterviewResource;
 use App\Models\Candidacy;
 use App\Models\Criteria;
 use App\Models\EvaluationFinale;
@@ -165,8 +166,6 @@ class CandidacyController extends Controller
     }
 
 
-
-
     /**
      * @OA\Post(
      *     path="/api/uploadCandidaciesDocs",
@@ -320,8 +319,6 @@ class CandidacyController extends Controller
             ], 500);
         }
     }
-
-
 
 
     public function getPreselectedCandidacies(Request $r)
@@ -508,5 +505,14 @@ class CandidacyController extends Controller
                 )
             );
         }
+    }
+
+    public function getCandidateInterview(int $id): InterviewResource
+    {
+        $interview = Interview::query()
+            ->where("candidacy_id", $id)
+            ->firstOrFail();
+
+        return new InterviewResource($interview);
     }
 }
