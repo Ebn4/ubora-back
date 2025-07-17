@@ -101,7 +101,7 @@ class DispatchController extends Controller
             $query = $query->where('ville', 'LIKE', "%{$ville}%");
         }
 
-        $candidaciesPreselection = Preselection::distinct('dispatch_preselections_id')->count('dispatch_preselections_id');
+        $candidaciesPreselection = DispatchPreselection::where('evaluator_id', $evaluateurId)->has("preselections")->get()->count();
         $count = $query->count();
 
         $perPage = $request->input('per_page', 5);
