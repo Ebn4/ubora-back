@@ -30,9 +30,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('preselection', PreselectionController::class)->except(['index', 'show']);
 
     Route::get('getPreselectionsForDispatch/{dispatchId}', [PreselectionController::class, 'getPreselectionsForDispatch']);
-
+    Route::get('/period/join/criteria', [CriteriaController::class, 'getCriteriaWithPeriodData']);
     Route::post('logout', [AuthenticationController::class, 'logout']);
-
+    Route::get("CandidaciesDispatchEvaluator", [DispatchController::class, 'CandidaciesDispatchByEvaluator']);
     Route::get('/getDoc', [CandidacyController::class, "getDoc"]);
 
     Route::middleware("admin")->group(function () {
@@ -53,16 +53,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('evaluators/{period}/is-dispatched', [DispatchController::class, 'hasEvaluatorBeenDispatched']);
         Route::post("evaluators/{period}/dispatch", [DispatchController::class, 'dispatchPreselection']);
-        Route::get("CandidaciesDispatchEvaluator", [DispatchController::class, 'CandidaciesDispatchByEvaluator']);
         Route::get('users/ldap/{user}', LdapUserController::class);
 
         Route::post('/uploadCandidacies', [CandidacyController::class, "uploadCandidacies"]);
         Route::post('/uploadCandidaciesDocs', [CandidacyController::class, "uploadCandidaciesDocs"]);
-
-        Route::get('/period/join/criteria', [CriteriaController::class, 'getCriteriaWithPeriodData']);
         Route::post('periods/attach-criteria/{id}', [CriteriaController::class, 'attachCriteriaToPeriod']);
         Route::get('periods/criteria/{id}', [PeriodController::class, 'getCriteriaForPeriod']);
-
     });
-
 });
