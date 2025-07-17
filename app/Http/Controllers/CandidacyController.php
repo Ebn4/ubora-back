@@ -283,6 +283,13 @@ class CandidacyController extends Controller
         }
     }
 
+    public function show(int $id): CandidacyResource
+    {
+        $candidacy = Candidacy::query()
+            ->findOrFail($id);
+        return new CandidacyResource($candidacy);
+    }
+
     public function getDoc(Request $request)
     {
         try {
@@ -390,40 +397,6 @@ class CandidacyController extends Controller
         }
         info('average Ok');
         return $candidacies;
-    }
-
-    public function getCandidacy(Request $request)
-    {
-        try {
-            /* $candidacy = Candidacy::select('candidats.*',
-            'u1.name as evaluateur1Name',
-            'u1.id as evaluateur1Id',
-            'u2.name as evaluateur2Name',
-            'u2.id as evaluateur2Id',
-            'u3.name as evaluateur3Name',
-            'u3.id as evaluateur3Id')
-            ->where('candidats.id',$r->candidacyId)
-            ->join('users as u1','candidats.evaluateur1','=','u1.id')
-            ->join('users as u2','candidats.evaluateur2','=','u2.id')
-            ->join('users as u3','candidats.evaluateur3','=','u3.id')
-            ->first(); */
-            $candidacyId = $request->input('candidacyId');
-            $candidacy = Candidacy::where('candidats.id', $candidacyId)->first();
-            $candidacy = new CandidacyResource($candidacy);
-
-            return response()->json([
-                'code' => 200,
-                'data' => $candidacy
-            ]);
-        } catch (\Throwable $th) {
-            Log::error($th->getMessage());
-            return response()->json([
-                'code' => 500,
-                'description' => 'Erreur interne du serveur',
-                'message' => 'Erreur interne du serveur'
-
-            ]);
-        }
     }
 
     public function destroy(Request $r)

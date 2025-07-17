@@ -41,9 +41,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('period', PeriodController::class);
         Route::apiResource("evaluators", EvaluatorController::class);
         Route::apiResource('users', UserController::class)->except(['store']);
-        Route::apiResource('candidacies', CandidacyController::class)->only(['index', 'destroy']);
+        Route::apiResource('candidacies', CandidacyController::class)->only(['index', 'destroy', "show"]);
 
-        Route::apiResource('users', UserController::class)->only(["index","destroy"]);
+        Route::apiResource('users', UserController::class)->only(["index", "destroy"]);
 
         Route::get('periods/{period}/criteria', [PeriodController::class, 'getCriteriaPeriod']);
         Route::put('periods/{period}/status', [PeriodController::class, 'changePeriodStatus']);
@@ -53,12 +53,17 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('evaluators/{period}/is-dispatched', [DispatchController::class, 'hasEvaluatorBeenDispatched']);
         Route::post("evaluators/{period}/dispatch", [DispatchController::class, 'dispatchPreselection']);
+        Route::get("CandidaciesDispatchEvaluator", [DispatchController::class, 'CandidaciesDispatchByEvaluator']);
         Route::get('users/ldap/{user}', LdapUserController::class);
 
         Route::get('/candidates/{id}/interviews', [CandidacyController::class, "getCandidateInterview"]);
         Route::post('/uploadCandidacies', [CandidacyController::class, "uploadCandidacies"]);
         Route::post('/uploadCandidaciesDocs', [CandidacyController::class, "uploadCandidaciesDocs"]);
+
+        Route::get('/period/join/criteria', [CriteriaController::class, 'getCriteriaWithPeriodData']);
         Route::post('periods/attach-criteria/{id}', [CriteriaController::class, 'attachCriteriaToPeriod']);
-        Route::get('periods/criteria/{id}', [PeriodController::class, 'getCriteriaForPeriod']);
+        Route::get('periods/criteria/{id}', [PeriodController::class, 'getCriteriaPeriod']);
+
     });
+
 });
