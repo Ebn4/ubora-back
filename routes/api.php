@@ -43,6 +43,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('users', UserController::class)->except(['store']);
         Route::apiResource('candidacies', CandidacyController::class)->only(['index', 'destroy']);
 
+        Route::apiResource('users', UserController::class)->only(["index","destroy"]);
+
         Route::get('periods/{period}/criteria', [PeriodController::class, 'getCriteriaPeriod']);
         Route::put('periods/{period}/status', [PeriodController::class, 'changePeriodStatus']);
 
