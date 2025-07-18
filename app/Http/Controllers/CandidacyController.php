@@ -283,11 +283,12 @@ class CandidacyController extends Controller
         }
     }
 
-    public function show(int $id): CandidacyResource
+    public function show(Request $request, int $id): CandidacyResource
     {
+        $evaluator_id = (int) $request->get('evaluator_id');
         $candidacy = Candidacy::query()
             ->findOrFail($id);
-        return new CandidacyResource($candidacy);
+        return new CandidacyResource($candidacy, $evaluator_id);
     }
 
     public function getDoc(Request $request)

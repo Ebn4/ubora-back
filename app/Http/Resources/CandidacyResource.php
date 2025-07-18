@@ -10,6 +10,15 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class CandidacyResource extends JsonResource
 {
+
+    protected $evaluator_id;
+
+    public function __construct($resource, $evaluator_id = null)
+    {
+        parent::__construct($resource);
+        $this->evaluator_id = $evaluator_id;
+        info("Id Evaluator : ". $this->evaluator_id);
+    }
     /**
      * Transform the resource into an array.
      *
@@ -19,9 +28,12 @@ class CandidacyResource extends JsonResource
     {
         $idPivot = optional(
             $this->dispatch->firstWhere(
-                fn($evaluator) => $evaluator->pivot?->candidacy_id === $this->id
+                fn($evaluator) =>
+                $evaluator->pivot?->candidacy_id === $this->id &&
+                    $evaluator->pivot?->evaluator_id === $this->evaluator_id
             )
         )?->pivot?->id;
+
         return [
             "id" => $this->id,
             "post_work_id" => $this->post_work_id,
