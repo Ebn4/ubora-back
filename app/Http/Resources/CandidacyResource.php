@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Models\DispatchPreselection;
+use App\Models\Preselection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -16,6 +17,11 @@ class CandidacyResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $idPivot = optional(
+            $this->dispatch->firstWhere(
+                fn($evaluator) => $evaluator->pivot?->candidacy_id === $this->id
+            )
+        )?->pivot?->id;
         return [
             "id" => $this->id,
             "post_work_id" => $this->post_work_id,
@@ -71,6 +77,7 @@ class CandidacyResource extends JsonResource
                 ->count('ville'),
             "preselection_count" => 0,
             "selection_count" => 0,
+            "candidacy_preselection" => Preselection::where("dispatch_preselections_id", $idPivot)->exists(),
         ];
     }
 }
