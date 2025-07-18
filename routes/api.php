@@ -26,7 +26,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('candidate/selections', [CandidacyController::class, 'candidateSelections']);
     Route::get("evaluators/{id}/candidacies", [EvaluatorController::class, 'getEvaluatorCandidacies']);
-
     Route::apiResource('preselection', PreselectionController::class)->except(['index', 'show']);
 
     Route::get('getPreselectionsForDispatch/{dispatchId}', [PreselectionController::class, 'getPreselectionsForDispatch']);
@@ -34,6 +33,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('logout', [AuthenticationController::class, 'logout']);
     Route::get("CandidaciesDispatchEvaluator", [DispatchController::class, 'CandidaciesDispatchByEvaluator']);
     Route::get('/getDoc', [CandidacyController::class, "getDoc"]);
+    Route::apiResource('candidacies', CandidacyController::class)->only(['index', 'destroy', "show"]);
 
     Route::middleware("admin")->group(function () {
 
@@ -41,7 +41,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('period', PeriodController::class);
         Route::apiResource("evaluators", EvaluatorController::class);
         Route::apiResource('users', UserController::class)->except(['store']);
-        Route::apiResource('candidacies', CandidacyController::class)->only(['index', 'destroy', "show"]);
 
         Route::apiResource('users', UserController::class)->only(["index", "destroy"]);
 
@@ -53,17 +52,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('evaluators/{period}/is-dispatched', [DispatchController::class, 'hasEvaluatorBeenDispatched']);
         Route::post("evaluators/{period}/dispatch", [DispatchController::class, 'dispatchPreselection']);
-        Route::get("CandidaciesDispatchEvaluator", [DispatchController::class, 'CandidaciesDispatchByEvaluator']);
         Route::get('users/ldap/{user}', LdapUserController::class);
 
         Route::get('/candidates/{id}/interviews', [CandidacyController::class, "getCandidateInterview"]);
         Route::post('/uploadCandidacies', [CandidacyController::class, "uploadCandidacies"]);
         Route::post('/uploadCandidaciesDocs', [CandidacyController::class, "uploadCandidaciesDocs"]);
 
-        Route::get('/period/join/criteria', [CriteriaController::class, 'getCriteriaWithPeriodData']);
         Route::post('periods/attach-criteria/{id}', [CriteriaController::class, 'attachCriteriaToPeriod']);
         Route::get('periods/criteria/{id}', [PeriodController::class, 'getCriteriaPeriod']);
-
     });
-
 });
