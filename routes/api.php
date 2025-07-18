@@ -55,6 +55,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('users/ldap/{user}', LdapUserController::class);
 
         Route::get('/candidates/{id}/interviews', [CandidacyController::class, "getCandidateInterview"]);
+        Route::get('/candidates/{id}/has-selection', [CandidacyController::class, "candidateHasSelection"]);
+
         Route::post('/uploadCandidacies', [CandidacyController::class, "uploadCandidacies"]);
         Route::post('/uploadCandidaciesDocs', [CandidacyController::class, "uploadCandidaciesDocs"]);
 
