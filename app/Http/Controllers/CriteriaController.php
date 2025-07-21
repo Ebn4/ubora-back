@@ -71,7 +71,7 @@ class CriteriaController extends Controller
         ]);
 
         try {
-            $criteria = Criteria::create(array_merge($request->only(['name', 'description']), ['status' => 'status']));
+            $criteria = Criteria::create(array_merge($request->only(['name', 'description']), ['status' => 'actif']));
 
             return response()->json([
                 'success' => true,
