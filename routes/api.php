@@ -52,6 +52,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('evaluators/{period}/is-dispatched', [DispatchController::class, 'hasEvaluatorBeenDispatched']);
         Route::post("evaluators/{period}/dispatch", [DispatchController::class, 'dispatchPreselection']);
+        Route::post("sendDispatchNotification", [DispatchController::class, 'sendDispatchNotification']);
         Route::get('users/ldap/{user}', LdapUserController::class);
 
         Route::get('/candidates/{id}/interviews', [CandidacyController::class, "getCandidateInterview"]);
