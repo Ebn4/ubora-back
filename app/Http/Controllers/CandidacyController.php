@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\EvaluatorTypeEnum;
 use App\Http\Requests\CandidateSelectionRequest;
 use App\Http\Resources\CandidacyResource;
+use App\Http\Resources\EvaluatorRessource;
 use App\Http\Resources\InterviewResource;
 use App\Models\Candidacy;
 use App\Models\Criteria;
@@ -15,6 +16,7 @@ use App\Models\Period;
 use Carbon\Carbon;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -285,7 +287,7 @@ class CandidacyController extends Controller
 
     public function show(Request $request, int $id): CandidacyResource
     {
-        $evaluator_id = (int) $request->get('evaluator_id');
+        $evaluator_id = (int)$request->get('evaluator_id');
         $candidacy = Candidacy::query()
             ->findOrFail($id);
         return new CandidacyResource($candidacy, $evaluator_id);
@@ -501,5 +503,15 @@ class CandidacyController extends Controller
             ->json([
                 "hasSelection" => $hasSelection
             ]);
+    }
+
+    public function getCandidateEvaluators(int $id): AnonymousResourceCollection
+    {
+        $evaluators = Evaluator::query()
+            ->whereHas('candidacies', function ($query) use ($id) {
+                $query->where("candidacy_id", $id);
+            })->get();
+
+        return EvaluatorRessource::collection($evaluators);
     }
 }
