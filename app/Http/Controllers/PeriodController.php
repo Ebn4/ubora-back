@@ -32,10 +32,13 @@ class PeriodController extends Controller
         $perPage = $request->input('per_page', 5);
 
         $paginated = $query->paginate($perPage);
-        //return $paginated;
         return PeriodResource::collection($paginated);
     }
 
+    public function getYearsPeriod(){
+        $query = Period::orderBy('year', 'asc')->get(['id', 'year']);
+        return response()->json($query);
+    }
 
     public function store(Request $request): JsonResponse
     {
