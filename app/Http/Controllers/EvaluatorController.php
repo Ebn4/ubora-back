@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\PeriodStatusEnum;
 use App\Http\Requests\EvaluatorRequest;
 use App\Http\Resources\CandidacyResource;
 use App\Http\Resources\EvaluatorCandidaciesResource;
 use App\Http\Resources\EvaluatorRessource;
 use App\Models\Evaluator;
+use App\Models\Period;
 use App\Models\User;
 use App\Services\EvaluatorService;
 use App\Services\UserLdapService;
@@ -92,6 +94,11 @@ class EvaluatorController extends Controller
 
             if ($exists) {
                 throw new \Exception("L'utilisateur est déjà enregistré en tant qu'évaluateur pour l'épreuve de {$type}.");
+            }
+
+            $period = Period::query()->findOrFail($request->periodId);
+            if ($period->status != PeriodStatusEnum::STATUS_DISPATCH->value) {
+                throw new \Exception("Vous n'avez plus le droit d'ajouter un evaluateur de PRESELECTION pour cette period.");
             }
 
             $this->evaluatorService->addEvaluator($user->id, $request->periodId, $type);
