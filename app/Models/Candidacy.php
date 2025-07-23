@@ -11,7 +11,7 @@ class Candidacy extends Model
 {
     use HasFactory;
 
-         /**
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
@@ -19,51 +19,56 @@ class Candidacy extends Model
 
 
     protected $fillable = [
-    'post_work_id',
-    'form_id',
-    'form_submited_at',
-    'etn_nom' ,
-    'etn_email',
-    'etn_prenom',
-    'etn_postnom',
-    'ville',
-    'telephone',
-    'adresse',
-    'province',
-    'nationalite' ,
-    'cv' ,
-    'releve_note_derniere_annee',
-    'en_soumettant',
-    'section_option' ,
-    'j_atteste' ,
-    'degre_parente_agent_orange' ,
-    'annee_diplome_detat',
-    'diplome_detat',
-    'autres_diplomes_atttestation',
-    'universite_institut_sup' ,
-    'pourcentage_obtenu' ,
-    'lettre_motivation' ,
-    'adresse_universite',
-    'parente_agent_orange',
-    'institution_scolaire',
-    'faculte',
-    'montant_frais',
-    'sexe' ,
-    'attestation_de_reussite_derniere_annee',
-    'user_last_login',
-    'evaluateur1',
-    'evaluateur2',
-    'evaluateur3',
-    'period_id',
+        'post_work_id',
+        'form_id',
+        'form_submited_at',
+        'etn_nom',
+        'etn_email',
+        'etn_prenom',
+        'etn_postnom',
+        'ville',
+        'telephone',
+        'adresse',
+        'province',
+        'nationalite',
+        'cv',
+        'releve_note_derniere_annee',
+        'en_soumettant',
+        'section_option',
+        'j_atteste',
+        'degre_parente_agent_orange',
+        'annee_diplome_detat',
+        'diplome_detat',
+        'autres_diplomes_atttestation',
+        'universite_institut_sup',
+        'pourcentage_obtenu',
+        'lettre_motivation',
+        'adresse_universite',
+        'parente_agent_orange',
+        'institution_scolaire',
+        'faculte',
+        'montant_frais',
+        'sexe',
+        'attestation_de_reussite_derniere_annee',
+        'user_last_login',
+        'evaluateur1',
+        'evaluateur2',
+        'evaluateur3',
+        'period_id',
     ];
 
-    protected $attribute = ['moyenne','evaluations_effectuées'];
+    protected $attribute = ['moyenne', 'evaluations_effectuées'];
 
     protected $table = 'candidats';
 
     public function dispatch(): BelongsToMany
     {
-        return $this->belongsToMany(Evaluator::class,'dispatch_preselections')->withPivot('id');
+        return $this->belongsToMany(Evaluator::class, 'dispatch_preselections')->withPivot('id');
+    }
+
+    public function interview(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Interview::class);
     }
 
     public function dispatchPreselections(): \Illuminate\Database\Eloquent\Relations\HasMany

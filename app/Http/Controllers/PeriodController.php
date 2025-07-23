@@ -7,6 +7,7 @@ use App\Enums\PeriodStatusEnum;
 use App\Http\Requests\ChangePeriodStatusRequest;
 use App\Http\Resources\CriteriaResource;
 use App\Http\Resources\PeriodResource;
+use App\Models\Evaluator;
 use App\Models\Period;
 use App\Models\StatusHistorique;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -35,7 +36,8 @@ class PeriodController extends Controller
         return PeriodResource::collection($paginated);
     }
 
-    public function getYearsPeriod(){
+    public function getYearsPeriod()
+    {
         $query = Period::orderBy('year', 'asc')->get(['id', 'year']);
         return response()->json($query);
     }
@@ -145,5 +147,13 @@ class PeriodController extends Controller
                 'message' => 'Erreur interne du serveur'
             ]);
         }
+    }
+
+    public function hasEvaluators(int $periodId): JsonResponse
+    {
+        $evaluators = Evaluator::query()->where('period_id', $periodId)->exists();
+        return response()->json([
+            "hasEvaluators" => $evaluators
+        ]);
     }
 }
