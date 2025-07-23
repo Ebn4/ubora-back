@@ -17,8 +17,9 @@ class CandidacyResource extends JsonResource
     {
         parent::__construct($resource);
         $this->evaluator_id = $evaluator_id;
-        info("Id Evaluator : ". $this->evaluator_id);
+        info("Id Evaluator : " . $this->evaluator_id);
     }
+
     /**
      * Transform the resource into an array.
      *
@@ -28,8 +29,7 @@ class CandidacyResource extends JsonResource
     {
         $idPivot = optional(
             $this->dispatch->firstWhere(
-                fn($evaluator) =>
-                $evaluator->pivot?->candidacy_id === $this->id &&
+                fn($evaluator) => $evaluator->pivot?->candidacy_id === $this->id &&
                     $evaluator->pivot?->evaluator_id === $this->evaluator_id
             )
         )?->pivot?->id;
@@ -90,6 +90,7 @@ class CandidacyResource extends JsonResource
             "preselection_count" => 0,
             "selection_count" => 0,
             "candidacy_preselection" => Preselection::where("dispatch_preselections_id", $idPivot)->exists(),
+            "hasSelected" => $this->interview()->whereHas('selectionResults')->exists()
         ];
     }
 }
