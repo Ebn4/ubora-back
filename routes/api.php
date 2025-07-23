@@ -65,6 +65,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/uploadCandidacies', [CandidacyController::class, "uploadCandidacies"]);
         Route::post('/uploadCandidaciesDocs', [CandidacyController::class, "uploadCandidaciesDocs"]);
 
+        Route::get('periods/{id}/has-evaluators', [PeriodController::class, 'hasEvaluators']);
         Route::post('periods/attach-criteria/{id}', [CriteriaController::class, 'attachCriteriaToPeriod']);
         Route::get('periods/criteria/{id}', [PeriodController::class, 'getCriteriaPeriod']);
     });
