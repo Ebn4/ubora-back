@@ -514,4 +514,31 @@ class CandidacyController extends Controller
 
         return EvaluatorRessource::collection($evaluators);
     }
+
+    public function getSelectedCandidates(Request $request): AnonymousResourceCollection
+    {
+        $perPage = 10;
+
+        if ($request->has('perPage')) {
+            $perPage = $request->input('perPage');
+        }
+
+        $currentYear = date("Y");
+
+        $period = Period::query()->where("year", $currentYear)->firstOrFail();
+
+        $candidates = Candidacy::query()
+            ->where("period_id", $period->id)
+            ->whereHas('interview');
+
+        if ($request->has('search')) {
+            $search = $request->input('search');
+            $candidates = $candidates->whereLike("etn_nom", "%$search%");
+        }
+
+        $candidates = $candidates
+            ->paginate($perPage);
+
+        return CandidacyResource::collection($candidates);
+    }
 }

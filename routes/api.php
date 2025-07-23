@@ -37,6 +37,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('getYearsPeriod', [PeriodController::class, 'getYearsPeriod']);
 
     Route::get('candidates/{id}/evaluators', [CandidacyController::class, 'getCandidateEvaluators']);
+    Route::get('candidates/interviews', [CandidacyController::class, 'getSelectedCandidates']);
 
 
     Route::middleware("admin")->group(function () {
