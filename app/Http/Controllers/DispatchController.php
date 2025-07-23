@@ -85,7 +85,7 @@ class DispatchController extends Controller
         $evaluateurId = $request->input("evaluateurId");
         $periodId = $request->input("periodId");
 
-        $query = Candidacy::query()
+        $query = Candidacy::with('dispatch')
             ->where("period_id", $periodId)
             ->whereHas("dispatch", function ($q) use ($evaluateurId) {
                 $q->where("evaluator_id", $evaluateurId);
