@@ -212,16 +212,25 @@ class CriteriaController extends Controller
     public function getCriteriaWithPeriodData(Request $request)
     {
         $request->validate([
-            'period_id' => 'required|exists:periods,id'
+            'period_id' => 'required|exists:periods,id',
+            'dispatch_preselections_id' => 'nullable|exists:dispatch_preselections,id',
         ]);
 
         try {
             $periodId = $request->input('period_id');
+            $dispatchPreselectionsId = $request->input('dispatch_preselections_id');
 
             $query = DB::table('criterias')
                 ->leftJoin('period_criteria', function ($join) use ($periodId) {
                     $join->on('criterias.id', '=', 'period_criteria.criteria_id')
                         ->where('period_criteria.period_id', '=', $periodId);
+                })
+                ->leftJoin('preselections', function ($join) use ($dispatchPreselectionsId) {
+                    $join->on('period_criteria.id', '=', 'preselections.period_criteria_id')
+                        ->where('preselections.dispatch_preselections_id', '=', $dispatchPreselectionsId);
+                })
+                ->leftJoin('dispatch_preselections', function ($join) {
+                    $join->on('preselections.dispatch_preselections_id', '=', 'dispatch_preselections.id');
                 })
                 ->where('criterias.status', '=', 'actif')
                 ->select(
@@ -231,7 +240,8 @@ class CriteriaController extends Controller
                     'criterias.status',
                     'period_criteria.type',
                     'period_criteria.ponderation',
-                    'period_criteria.id as period_criteria_id'
+                    'period_criteria.id as period_criteria_id',
+                    'preselections.valeur'
                 );
 
             if ($request->filled('search')) {
