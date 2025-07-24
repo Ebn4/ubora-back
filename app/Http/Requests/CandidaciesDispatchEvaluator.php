@@ -25,7 +25,7 @@ class CandidaciesDispatchEvaluator extends FormRequest
     public function rules(): array
     {
         return [
-            'evaluateurId' => 'required|integer|exists:evaluators,id',
+            'evaluateurId' => 'required|integer|exists:evaluators,user_id',
         ];
     }
 
