@@ -12,6 +12,7 @@ use App\Models\Evaluator;
 use App\Models\Period;
 use App\Models\Preselection;
 use App\Notifications\DispatchNotification;
+use Illuminate\Http\Request;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Notification;
@@ -80,10 +81,22 @@ class DispatchController extends Controller
         ]);
     }
 
-    public function CandidaciesDispatchByEvaluator(CandidaciesDispatchEvaluator $request)
+    public function CandidaciesDispatchByEvaluator(Request $request)
     {
-        $evaluateurId = $request->input("evaluateurId");
         $periodId = $request->input("periodId");
+        $dataEvaluateur = Evaluator::query()
+            ->where("user_id", auth()->user()->id)
+            ->where("type", EvaluatorTypeEnum::EVALUATOR_PRESELECTION->value)
+            ->where("period_id", $periodId)
+            ->firstOrFail();
+        if (!$dataEvaluateur) {
+            throw new HttpResponseException(
+                response: response()->json([
+                    "error" => "Vous n'êtes pas autorisé à accéder à cette ressource."
+                ])
+            );
+        }
+        $evaluateurId = $dataEvaluateur?->id;
 
         $query = Candidacy::with(['dispatch' => function ($query) use ($evaluateurId) {
             $query->where('evaluator_id', $evaluateurId)->limit(1);
