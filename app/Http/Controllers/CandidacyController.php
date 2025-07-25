@@ -443,13 +443,19 @@ class CandidacyController extends Controller
             $interviewId = $request->post('interviewId');
             $interview = Interview::query()->findOrFail($interviewId);
 
+            $isEvaluatorForSelection = false;
+            $exist = Evaluator::query()
+                ->where("user_id", auth()->user()->id)
+                ->where("type", EvaluatorTypeEnum::EVALUATOR_SELECTION->value)
+                ->exists();
+
+            if (!$exist) {
+                throw new \Exception("Action non autorisée : seul un évaluateur de sélection peut effectuer");
+            }
+
             $evaluator = Evaluator::query()
                 ->where("user_id", auth()->user()->id)
                 ->firstOrFail();
-
-            if ($evaluator->type != EvaluatorTypeEnum::EVALUATOR_SELECTION->value) {
-                throw new \Exception("Action non autorisée : seul un évaluateur de sélection peut effectuer cette opération.");
-            }
 
             foreach ($request->post('evaluations') as $evaluation) {
                 $criteria = Criteria::query()->findOrFail($evaluation['key']);
