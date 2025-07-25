@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\EvaluatorTypeEnum;
 use App\Enums\PeriodStatusEnum;
 use App\Http\Requests\periodCriteriaAttache;
 use App\Models\Criteria;
+use App\Models\Evaluator;
 use App\Models\Period;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\DB;
 
 class CriteriaController extends Controller
@@ -214,13 +217,26 @@ class CriteriaController extends Controller
         $request->validate([
             'period_id' => 'required|exists:periods,id',
             'dispatch_preselections_id' => 'nullable|exists:dispatch_preselections,id',
-            'evaluateurId' => 'nullable|exists:dispatch_preselections,evaluator_id',
         ]);
 
         try {
             $periodId = $request->input('period_id');
             $dispatchPreselectionsId = $request->input('dispatch_preselections_id');
-            $evaluateurId = $request->input('evaluateurId');
+
+            $dataEvaluateur = Evaluator::query()
+                ->where("user_id", auth()->user()->id)
+                ->where("type", EvaluatorTypeEnum::EVALUATOR_PRESELECTION->value)
+                ->where("period_id", $periodId)
+                ->firstOrFail();
+
+            if (!$dataEvaluateur) {
+                throw new HttpResponseException(
+                    response: response()->json([
+                        "error" => "Vous n'êtes pas autorisé à accéder à cette ressource."
+                    ])
+                );
+            }
+            $evaluateurId = $dataEvaluateur?->id;
 
             $query = DB::table('criterias')
                 ->leftJoin('period_criteria', function ($join) use ($periodId) {
