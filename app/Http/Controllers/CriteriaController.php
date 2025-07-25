@@ -24,7 +24,7 @@ class CriteriaController extends Controller
 
             if ($request->has('periodId') && $request->input('periodId') != null) {
                 $periodId = $request->input('periodId');
-                $query=$query->leftJoin('period_criteria', function ($join) use ($periodId) {
+                $query = $query->leftJoin('period_criteria', function ($join) use ($periodId) {
                     $join->on('criterias.id', '=', 'period_criteria.criteria_id')
                         ->where('period_criteria.period_id', '=', $periodId);
                 })
@@ -41,13 +41,13 @@ class CriteriaController extends Controller
 
                 if ($request->has('type')) {
                     $type = $request->input('type');
-                    $query= $query->where('period_criteria.type', "{$type}");
+                    $query = $query->where('period_criteria.type', "{$type}");
                 }
             }
 
             if ($request->has('search')) {
                 $search = $request->input('search');
-                $query=$query->where(function ($q) use ($search) {
+                $query = $query->where(function ($q) use ($search) {
                     $q->where('name', 'LIKE', "%{$search}%")
                         ->orWhere('description', 'LIKE', "%{$search}%");
                 });
@@ -223,36 +223,10 @@ class CriteriaController extends Controller
             $periodId = $request->input('period_id');
             $dispatchPreselectionsId = $request->input('dispatch_preselections_id');
 
-            $dataEvaluateur = Evaluator::query()
-                ->where("user_id", auth()->user()->id)
-                ->where("type", EvaluatorTypeEnum::EVALUATOR_PRESELECTION->value)
-                ->where("period_id", $periodId)
-                ->firstOrFail();
-
-            if (!$dataEvaluateur) {
-                throw new HttpResponseException(
-                    response: response()->json([
-                        "error" => "Vous n'êtes pas autorisé à accéder à cette ressource."
-                    ])
-                );
-            }
-            $evaluateurId = $dataEvaluateur?->id;
-
             $query = DB::table('criterias')
                 ->leftJoin('period_criteria', function ($join) use ($periodId) {
                     $join->on('criterias.id', '=', 'period_criteria.criteria_id')
                         ->where('period_criteria.period_id', '=', $periodId);
-                })
-                ->leftJoin('preselections', function ($join) use ($dispatchPreselectionsId) {
-                    $join->on('period_criteria.id', '=', 'preselections.period_criteria_id')
-                        ->where('preselections.dispatch_preselections_id', '=', $dispatchPreselectionsId);
-                })
-                ->leftJoin('dispatch_preselections', function ($join) {
-                    $join->on('preselections.dispatch_preselections_id', '=', 'dispatch_preselections.id');
-                })
-                ->leftJoin('evaluators', function ($join) use ($evaluateurId) {
-                    $join->on('dispatch_preselections.evaluator_id', '=', 'evaluators.id')
-                        ->where('evaluators.id', '=', $evaluateurId);
                 })
                 ->where('criterias.status', '=', 'actif')
                 ->select(
@@ -263,8 +237,31 @@ class CriteriaController extends Controller
                     'period_criteria.type',
                     'period_criteria.ponderation',
                     'period_criteria.id as period_criteria_id',
-                    DB::raw("CASE WHEN dispatch_preselections.evaluator_id IS NULL THEN NULL ELSE preselections.valeur END as valeur")
+                    DB::raw('NULL as valeur')
                 );
+
+            if ($dispatchPreselectionsId) {
+                $dataEvaluateur = Evaluator::query()
+                    ->where("user_id", auth()->user()->id)
+                    ->where("type", EvaluatorTypeEnum::EVALUATOR_PRESELECTION->value)
+                    ->where("period_id", $periodId)
+                    ->firstOrFail();
+
+                $evaluateurId = $dataEvaluateur->id;
+
+                $query->leftJoin('preselections', function ($join) use ($dispatchPreselectionsId) {
+                    $join->on('period_criteria.id', '=', 'preselections.period_criteria_id')
+                        ->where('preselections.dispatch_preselections_id', '=', $dispatchPreselectionsId);
+                })
+                    ->leftJoin('dispatch_preselections', function ($join) {
+                        $join->on('preselections.dispatch_preselections_id', '=', 'dispatch_preselections.id');
+                    })
+                    ->leftJoin('evaluators', function ($join) use ($evaluateurId) {
+                        $join->on('dispatch_preselections.evaluator_id', '=', 'evaluators.id')
+                            ->where('evaluators.id', '=', $evaluateurId);
+                    })
+                    ->selectRaw("CASE WHEN dispatch_preselections.evaluator_id IS NULL THEN NULL ELSE preselections.valeur END as valeur");
+            }
 
             if ($request->filled('search')) {
                 $search = $request->input('search');
