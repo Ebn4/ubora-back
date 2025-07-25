@@ -38,12 +38,16 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('candidates/{id}/evaluators', [CandidacyController::class, 'getCandidateEvaluators']);
     Route::get('candidates/interviews', [CandidacyController::class, 'getSelectedCandidates']);
+    Route::get('periods/criteria/{id}', [PeriodController::class, 'getCriteriaPeriod']);
+    Route::get('/candidates/{id}/interviews', [CandidacyController::class, "getCandidateInterview"]);
+    Route::get('/candidates/{id}/has-selection', [CandidacyController::class, "candidateHasSelection"]);
+    Route::apiResource('period', PeriodController::class);
+
 
 
     Route::middleware("admin")->group(function () {
 
         Route::apiResource('criteria', CriteriaController::class);
-        Route::apiResource('period', PeriodController::class);
         Route::apiResource("evaluators", EvaluatorController::class);
         Route::apiResource('users', UserController::class)->except(['store']);
 
@@ -60,14 +64,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post("sendDispatchNotification", [DispatchController::class, 'sendDispatchNotification']);
         Route::get('users/ldap/{user}', LdapUserController::class);
 
-        Route::get('/candidates/{id}/interviews', [CandidacyController::class, "getCandidateInterview"]);
-        Route::get('/candidates/{id}/has-selection', [CandidacyController::class, "candidateHasSelection"]);
+
 
         Route::post('/uploadCandidacies', [CandidacyController::class, "uploadCandidacies"]);
         Route::post('/uploadCandidaciesDocs', [CandidacyController::class, "uploadCandidaciesDocs"]);
 
         Route::get('periods/{id}/has-evaluators', [PeriodController::class, 'hasEvaluators']);
         Route::post('periods/attach-criteria/{id}', [CriteriaController::class, 'attachCriteriaToPeriod']);
-        Route::get('periods/criteria/{id}', [PeriodController::class, 'getCriteriaPeriod']);
     });
 });

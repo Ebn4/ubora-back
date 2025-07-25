@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Models\DispatchPreselection;
+use App\Models\Interview;
 use App\Models\Preselection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -87,7 +88,7 @@ class CandidacyResource extends JsonResource
                 ->where('period_id', $this->period_id)
                 ->distinct('ville')
                 ->count('ville'),
-            "preselection_count" => 0,
+            "preselection_count" => Interview::count(),
             "selection_count" => 0,
             "candidacy_preselection" => Preselection::where("dispatch_preselections_id", $idPivot)->exists(),
             "hasSelected" => $this->interview()->whereHas('selectionResults')->exists()
