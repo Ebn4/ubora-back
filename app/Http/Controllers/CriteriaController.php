@@ -214,11 +214,13 @@ class CriteriaController extends Controller
         $request->validate([
             'period_id' => 'required|exists:periods,id',
             'dispatch_preselections_id' => 'nullable|exists:dispatch_preselections,id',
+            'evaluateurId' => 'nullable|exists:dispatch_preselections,evaluator_id',
         ]);
 
         try {
             $periodId = $request->input('period_id');
             $dispatchPreselectionsId = $request->input('dispatch_preselections_id');
+            $evaluateurId = $request->input('evaluateurId');
 
             $query = DB::table('criterias')
                 ->leftJoin('period_criteria', function ($join) use ($periodId) {
@@ -232,6 +234,10 @@ class CriteriaController extends Controller
                 ->leftJoin('dispatch_preselections', function ($join) {
                     $join->on('preselections.dispatch_preselections_id', '=', 'dispatch_preselections.id');
                 })
+                ->leftJoin('evaluators', function ($join) use ($evaluateurId) {
+                    $join->on('dispatch_preselections.evaluator_id', '=', 'evaluators.id')
+                        ->where('evaluators.id', '=', $evaluateurId);
+                })
                 ->where('criterias.status', '=', 'actif')
                 ->select(
                     'criterias.id',
@@ -241,7 +247,7 @@ class CriteriaController extends Controller
                     'period_criteria.type',
                     'period_criteria.ponderation',
                     'period_criteria.id as period_criteria_id',
-                    'preselections.valeur'
+                    DB::raw("CASE WHEN dispatch_preselections.evaluator_id IS NULL THEN NULL ELSE preselections.valeur END as valeur")
                 );
 
             if ($request->filled('search')) {
