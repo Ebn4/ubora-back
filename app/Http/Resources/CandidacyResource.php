@@ -73,6 +73,7 @@ class CandidacyResource extends JsonResource
             "created_at" => $this->created_at,
             "updated_at" => $this->updated_at,
             "period_id" => $this->period_id,
+            'period_status' => $this->period?->status,
             "evaluators" => $this->dispatch,
             "evalutors_number" => $this->dispatch->count(),
             "nb_evaluation" => DispatchPreselection::where('candidacy_id', $this->id)->has("preselections")->get()->count(),
