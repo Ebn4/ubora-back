@@ -61,6 +61,11 @@ class Candidacy extends Model
 
     protected $table = 'candidats';
 
+    public function period()
+    {
+        return $this->belongsTo(Period::class);
+    }
+
     public function dispatch(): BelongsToMany
     {
         return $this->belongsToMany(Evaluator::class, 'dispatch_preselections')->withPivot('id');
