@@ -14,7 +14,9 @@ use App\Models\User;
 use App\Services\EvaluatorService;
 use App\Services\UserLdapService;
 use App\Services\UserService;
+use Carbon\Carbon;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
@@ -161,5 +163,20 @@ class EvaluatorController extends Controller
             ->candidacies;
 
         return CandidacyResource::collection($candidacies);
+    }
+
+    public function isSelectorEvaluator(): JsonResponse
+    {
+        $userId = auth()->user()->id;
+        $evaluators = Evaluator::query()
+            ->where('type', EvaluatorTypeEnum::EVALUATOR_SELECTION->value)
+            ->where('user_id', $userId)
+            ->whereHas('period', function ($query) {
+                $query->where('year', Carbon::now()->year);
+            })
+            ->exists();
+        return response()->json([
+            "isSelectorEvaluator" => $evaluators
+        ]);
     }
 }
