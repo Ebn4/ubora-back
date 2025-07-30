@@ -441,21 +441,17 @@ class CandidacyController extends Controller
             DB::beginTransaction();
 
             $interviewId = $request->post('interviewId');
+            $periodId = $request->post('periodId');
             $interview = Interview::query()->findOrFail($interviewId);
 
-            $isEvaluatorForSelection = false;
-            $exist = Evaluator::query()
-                ->where("user_id", auth()->user()->id)
-                ->where("type", EvaluatorTypeEnum::EVALUATOR_SELECTION->value)
-                ->exists();
-
-            if (!$exist) {
-                throw new \Exception("Action non autorisée : seul un évaluateur de sélection peut effectuer");
-            }
-
             $evaluator = Evaluator::query()
+                ->where('period_id', $periodId)
                 ->where("user_id", auth()->user()->id)
-                ->firstOrFail();
+                ->first();
+
+            if (!$evaluator) {
+                throw new \Exception("Action non autorisée : seul un évaluateur de sélection de la periode encours peut effectuer cette opération.");
+            }
 
             foreach ($request->post('evaluations') as $evaluation) {
                 $criteria = Criteria::query()->findOrFail($evaluation['key']);
