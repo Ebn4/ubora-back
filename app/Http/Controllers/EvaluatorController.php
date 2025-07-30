@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\EvaluatorTypeEnum;
 use App\Enums\PeriodStatusEnum;
 use App\Http\Requests\EvaluatorRequest;
 use App\Http\Resources\CandidacyResource;
@@ -80,7 +81,9 @@ class EvaluatorController extends Controller
                 $user = $this->userService->create($ldapUser->email, $ldapUser->cuid, "evaluator", $ldapUser->name);
             }
 
-            $exists = Evaluator::where('user_id', $user->id)
+            $evaluator = Evaluator::query()
+                ->where('user_id', $user->id)
+                ->where('period_id', $request->periodId)
                 ->where(function ($query) use ($type, $request) {
                     if ($type === 'SELECTION') {
                         $query->where('type', 'SELECTION')
@@ -90,15 +93,20 @@ class EvaluatorController extends Controller
                             ->where('period_id', $request->periodId);
                     }
                 })
-                ->exists();
+                ->first();
 
-            if ($exists) {
+            if ($evaluator) {
                 throw new \Exception("L'utilisateur est déjà enregistré en tant qu'évaluateur pour l'épreuve de {$type}.");
             }
 
             $period = Period::query()->findOrFail($request->periodId);
-            if ($period->status != PeriodStatusEnum::STATUS_DISPATCH->value) {
-                throw new \Exception("Vous n'avez plus le droit d'ajouter un evaluateur de PRESELECTION pour cette period.");
+
+            if ($period->status != PeriodStatusEnum::STATUS_DISPATCH->value && $type == EvaluatorTypeEnum::EVALUATOR_PRESELECTION->value) {
+                throw new \Exception("Vous n'avez plus le droit d'ajouter un evaluateur de PRESELECTION pour cette periode.");
+            }
+
+            if ($period->status == PeriodStatusEnum::STATUS_SELECTION->value && $type == EvaluatorTypeEnum::EVALUATOR_SELECTION->value) {
+                throw new \Exception("Vous n'avez plus le droit d'ajouter un evaluateur de SELECTION pour cette periode.");
             }
 
             $this->evaluatorService->addEvaluator($user->id, $request->periodId, $type);
