@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\EvaluatorTypeEnum;
+use App\Enums\PeriodStatusEnum;
 use App\Http\Requests\CandidateSelectionRequest;
 use App\Http\Resources\CandidacyResource;
 use App\Http\Resources\EvaluatorRessource;
@@ -74,11 +75,29 @@ class CandidacyController extends Controller
             $year = $request->input('year');
             $currentYear = Carbon::createFromFormat('Y', $year);
             $processedEmails = [];
+            $period = Period::firstOrCreate(['year' => $currentYear->year]);
 
-            DB::transaction(function () use ($rows, &$processedEmails, $currentYear) {
-                $period = Period::firstOrCreate(['year' => $currentYear->year]);
+            if ($period->status !== PeriodStatusEnum::STATUS_DISPATCH->value) {
+                return response()->json([
+                    'message' => "La période pour l'année $year est fermée et ne peut pas recevoir de candidatures.",
+                ], 403);
+            }
+
+            DB::transaction(function () use ($rows, &$processedEmails, $period, $currentYear) {
 
                 foreach ($rows as $index => $row) {
+
+                    $is_allowed = true;
+
+                    $birthDate = !empty($row['naissance']) ? Carbon::createFromFormat('d/m/Y', $row['naissance']) : null;
+                    $age = $birthDate ? $birthDate->age : null;
+
+                    $pourcentage = floatval($row['pourcentage_obtenu'] ?? 0);
+
+                    if ($pourcentage < 70 || $age !== null && $age < 21) {
+                        $is_allowed = false;
+                    }
+
                     try {
                         try {
                             $createdOn = Carbon::createFromFormat('d/m/Y H:i', $row['created_on']);
@@ -105,7 +124,6 @@ class CandidacyController extends Controller
                             Log::info("Ligne $index ignorée : email déjà existant pour cette période en base → $email");
                             continue;
                         }
-
 
                         $processedEmails[] = $email;
 
@@ -144,6 +162,7 @@ class CandidacyController extends Controller
                             'attestation_de_reussite_derniere_annee' => is_array($row['attestation_derussitedeladernireannedtude']) ? implode(', ', $row['attestation_derussitedeladernireannedtude']) : $row['attestation_derussitedeladernireannedtude'],
                             'user_last_login' => is_array($row['user_last_login']) ? implode(', ', $row['user_last_login']) : $row['user_last_login'],
                             'period_id' => $period->id,
+                            'is_allowed' => $is_allowed,
                         ]);
                     } catch (\Exception $e) {
                         Log::error("Erreur en traitant la ligne : " . $e->getMessage());
