@@ -59,11 +59,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('preselection/periods/{period}/validate', [PreselectionController::class, 'canValidatePreselection']);
         Route::post('preselection/periods/{period}/validate', [PreselectionController::class, 'validatePreselection']);
 
+        Route::get('evaluators/is-selector-evaluator', [EvaluatorController::class, 'isSelectorEvaluator']);
         Route::get('evaluators/{period}/is-dispatched', [DispatchController::class, 'hasEvaluatorBeenDispatched']);
         Route::post("evaluators/{period}/dispatch", [DispatchController::class, 'dispatchPreselection']);
         Route::post("sendDispatchNotification", [DispatchController::class, 'sendDispatchNotification']);
         Route::get('users/ldap/{user}', LdapUserController::class);
-
 
 
         Route::post('/uploadCandidacies', [CandidacyController::class, "uploadCandidacies"]);

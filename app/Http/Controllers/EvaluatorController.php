@@ -14,7 +14,9 @@ use App\Models\User;
 use App\Services\EvaluatorService;
 use App\Services\UserLdapService;
 use App\Services\UserService;
+use Carbon\Carbon;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
@@ -72,6 +74,12 @@ class EvaluatorController extends Controller
     {
         try {
             $type = $request->type;
+            $period = Period::query()->findOrFail($request->periodId);
+
+            if ($period->status == PeriodStatusEnum::STATUS_CLOSE->value) {
+                throw new \Exception("Vous n'avez plus le droit d'ajouter un evaluateur pour cette periode.");
+            }
+
             $ldapUser = $this->userLdapService->findUserByCuid($request->cuid);
 
             $exists = User::where('email', $ldapUser->email)->exists();
@@ -99,7 +107,6 @@ class EvaluatorController extends Controller
                 throw new \Exception("L'utilisateur est déjà enregistré en tant qu'évaluateur pour l'épreuve de {$type}.");
             }
 
-            $period = Period::query()->findOrFail($request->periodId);
 
             if ($period->status != PeriodStatusEnum::STATUS_DISPATCH->value && $type == EvaluatorTypeEnum::EVALUATOR_PRESELECTION->value) {
                 throw new \Exception("Vous n'avez plus le droit d'ajouter un evaluateur de PRESELECTION pour cette periode.");
@@ -141,7 +148,22 @@ class EvaluatorController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        try {
+            $evaluator = Evaluator::query()
+                ->findOrFail($id);
+
+            $period = Period::query()->findOrFail($evaluator->period_id);
+
+            if ($period->status != PeriodStatusEnum::STATUS_DISPATCH->value) {
+                throw new \Exception("Vous  n'avez pas le droit d'effacer cet evaluateur car le status de la periode est PRESELECTION.");
+            }
+
+            $evaluator->delete();
+        } catch (\Exception $e) {
+            throw  new HttpResponseException(
+                response: response()->json(['errors' => $e->getMessage()], 400)
+            );
+        }
     }
 
     public function evaluatorCandidacy(int $id): AnonymousResourceCollection
@@ -161,5 +183,20 @@ class EvaluatorController extends Controller
             ->candidacies;
 
         return CandidacyResource::collection($candidacies);
+    }
+
+    public function isSelectorEvaluator(): JsonResponse
+    {
+        $userId = auth()->user()->id;
+        $evaluators = Evaluator::query()
+            ->where('type', EvaluatorTypeEnum::EVALUATOR_SELECTION->value)
+            ->where('user_id', $userId)
+            ->whereHas('period', function ($query) {
+                $query->where('year', Carbon::now()->year);
+            })
+            ->exists();
+        return response()->json([
+            "isSelectorEvaluator" => $evaluators
+        ]);
     }
 }
