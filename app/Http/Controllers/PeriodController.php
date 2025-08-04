@@ -99,7 +99,7 @@ class PeriodController extends Controller
     }
 
 
-    public function changePeriodStatus(ChangePeriodStatusRequest $request, int $id)
+    public function changePeriodStatus(ChangePeriodStatusRequest $request, int $id): JsonResponse
     {
         $period = Period::findOrFail($id);
         $currentStatus = $period->status;
@@ -109,6 +109,7 @@ class PeriodController extends Controller
         $allowedTransitions = [
             PeriodStatusEnum::STATUS_DISPATCH->value => PeriodStatusEnum::STATUS_PRESELECTION->value,
             PeriodStatusEnum::STATUS_PRESELECTION->value => PeriodStatusEnum::STATUS_SELECTION->value,
+            PeriodStatusEnum::STATUS_SELECTION->value => PeriodStatusEnum::STATUS_CLOSE->value,
         ];
 
         if (isset($allowedTransitions[$currentStatus]) && $allowedTransitions[$currentStatus] === $newStatus) {
