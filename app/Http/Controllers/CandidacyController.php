@@ -263,7 +263,51 @@ class CandidacyController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = Candidacy::query();
+            $query = Candidacy::query()->where('is_allowed', true);
+            $periodId = Period::where('year', now()->year)->first()->id;
+
+            if ($request->has('search') && $request->input('search') != null) {
+                $search = $request->input('search');
+
+                $query = $query->where(function ($q) use ($search) {
+                    $q->where('etn_nom', 'like', "%$search%")
+                        ->orWhere('etn_prenom', 'like', "%$search%")
+                        ->orWhere('etn_postnom', 'like', "%$search%")
+                        ->orWhere('ville', 'like', "%$search%");
+                });
+            }
+
+            if ($request->has('ville') && $request->input('ville') != null) {
+                $ville = $request->input('ville');
+                $query = $query->where('ville', 'LIKE', "%{$ville}%");
+            }
+
+            if ($request->has('periodId') && $request->input('periodId') != null) {
+                $periodId = $request->input('periodId');
+                $query = $query->where('period_id', $periodId);
+            } else {
+                $query = $query->where('period_id', $periodId);
+            }
+
+            $perPage = $request->input('per_page', 5);
+
+            $paginated = $query->paginate($perPage);
+
+            return CandidacyResource::collection($paginated);
+        } catch (\Throwable $th) {
+            Log::error($th);
+            return response()->json([
+                'code' => 500,
+                'description' => 'Erreur interne du serveur',
+                'message' => 'Erreur interne du serveur'
+            ]);
+        }
+    }
+
+    public function rejetedCandidacies(Request $request)
+    {
+        try {
+            $query = Candidacy::query()->where('is_allowed', false);
             $periodId = Period::where('year', now()->year)->first()->id;
 
             if ($request->has('search') && $request->input('search') != null) {
