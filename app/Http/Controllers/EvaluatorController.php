@@ -143,7 +143,9 @@ class EvaluatorController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $evaluator = Evaluator::query()
+            ->findOrFail($id);
+        $evaluator->delete();
     }
 
     public function evaluatorCandidacy(int $id): AnonymousResourceCollection
