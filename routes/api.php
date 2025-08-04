@@ -45,7 +45,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('period', PeriodController::class);
 
 
-
     Route::middleware("admin")->group(function () {
 
         Route::apiResource('criteria', CriteriaController::class);
@@ -54,17 +53,19 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::apiResource('users', UserController::class)->only(["index", "destroy"]);
 
+        Route::post('upload-documents', [CandidacyController::class, 'uploadZipFile']);
+
         Route::get('periods/{period}/criteria', [PeriodController::class, 'getCriteriaPeriod']);
         Route::put('periods/{period}/status', [PeriodController::class, 'changePeriodStatus']);
 
         Route::get('preselection/periods/{period}/validate', [PreselectionController::class, 'canValidatePreselection']);
         Route::post('preselection/periods/{period}/validate', [PreselectionController::class, 'validatePreselection']);
 
+        Route::get('evaluators/is-selector-evaluator', [EvaluatorController::class, 'isSelectorEvaluator']);
         Route::get('evaluators/{period}/is-dispatched', [DispatchController::class, 'hasEvaluatorBeenDispatched']);
         Route::post("evaluators/{period}/dispatch", [DispatchController::class, 'dispatchPreselection']);
         Route::post("sendDispatchNotification", [DispatchController::class, 'sendDispatchNotification']);
         Route::get('users/ldap/{user}', LdapUserController::class);
-
 
 
         Route::post('/uploadCandidacies', [CandidacyController::class, "uploadCandidacies"]);

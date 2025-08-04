@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use ZanySoft\Zip\Zip;
 use function PHPUnit\Framework\isEmpty;
 
 class CandidacyController extends Controller
@@ -504,21 +505,17 @@ class CandidacyController extends Controller
             DB::beginTransaction();
 
             $interviewId = $request->post('interviewId');
+            $periodId = $request->post('periodId');
             $interview = Interview::query()->findOrFail($interviewId);
 
-            $isEvaluatorForSelection = false;
-            $exist = Evaluator::query()
-                ->where("user_id", auth()->user()->id)
-                ->where("type", EvaluatorTypeEnum::EVALUATOR_SELECTION->value)
-                ->exists();
-
-            if (!$exist) {
-                throw new \Exception("Action non autorisée : seul un évaluateur de sélection peut effectuer");
-            }
-
             $evaluator = Evaluator::query()
+                ->where('period_id', $periodId)
                 ->where("user_id", auth()->user()->id)
-                ->firstOrFail();
+                ->first();
+
+            if (!$evaluator) {
+                throw new \Exception("Action non autorisée : seul un évaluateur de sélection de la periode encours peut effectuer cette opération.");
+            }
 
             foreach ($request->post('evaluations') as $evaluation) {
                 $criteria = Criteria::query()->findOrFail($evaluation['key']);
@@ -609,5 +606,33 @@ class CandidacyController extends Controller
             ->paginate($perPage);
 
         return CandidacyResource::collection($candidates);
+    }
+
+    public function uploadZipFile(Request $request)
+    {
+        $request->validate([
+            'zip_file' => 'required|file|mimes:zip',
+        ]);
+
+        try {
+            $zipPath = $request->file('zip_file')->store('documents', 'public');
+            $fullPath = storage_path("app/public/{$zipPath}");
+
+            $zip = new Zip();
+            $zip = $zip->open($fullPath);
+
+            if (!$zip->check($fullPath)) {
+                throw new \Exception("Invalid zip file");
+            }
+
+            $zip->extract(storage_path('app/public/documents'));
+
+            return response()->json(['message' => 'Fichier ZIP téléchargé et extrait avec succès.']);
+
+        } catch (\Exception $e) {
+            throw  new HttpResponseException(
+                response: response()->json(['errors' => $e->getMessage()], 400)
+            );
+        }
     }
 }
