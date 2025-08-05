@@ -79,14 +79,16 @@ class CandidacyResource extends JsonResource
             "nb_evaluation" => DispatchPreselection::where('candidacy_id', $this->id)->has("preselections")->get()->count(),
             "institute_count" => DB::table('candidats')
                 ->where('period_id', $this->period_id)
+                ->where('is_allowed', true)
                 ->distinct('universite_institut_sup')
                 ->count('universite_institut_sup'),
             "candidacy_count" => DB::table('candidats')
+                ->where('is_allowed', true)
                 ->where('period_id', $this->period_id)
-                ->distinct('id')
                 ->count('id'),
             "city_count" => DB::table('candidats')
                 ->where('period_id', $this->period_id)
+                ->where('is_allowed', true)
                 ->distinct('ville')
                 ->count('ville'),
             "preselection_count" => Interview::count(),

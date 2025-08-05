@@ -55,6 +55,7 @@ class Candidacy extends Model
         'evaluateur2',
         'evaluateur3',
         'period_id',
+        'is_allowed',
     ];
 
     protected $attribute = ['moyenne', 'evaluations_effectuées'];

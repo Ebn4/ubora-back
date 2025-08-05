@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\EvaluatorTypeEnum;
+use App\Enums\PeriodStatusEnum;
 use App\Http\Requests\CandidateSelectionRequest;
 use App\Http\Resources\CandidacyResource;
 use App\Http\Resources\EvaluatorRessource;
@@ -75,11 +76,29 @@ class CandidacyController extends Controller
             $year = $request->input('year');
             $currentYear = Carbon::createFromFormat('Y', $year);
             $processedEmails = [];
+            $period = Period::firstOrCreate(['year' => $currentYear->year]);
 
-            DB::transaction(function () use ($rows, &$processedEmails, $currentYear) {
-                $period = Period::firstOrCreate(['year' => $currentYear->year]);
+            if ($period->status !== PeriodStatusEnum::STATUS_DISPATCH->value) {
+                return response()->json([
+                    'message' => "La période pour l'année $year est fermée et ne peut pas recevoir de candidatures.",
+                ], 403);
+            }
+
+            DB::transaction(function () use ($rows, &$processedEmails, $period, $currentYear) {
 
                 foreach ($rows as $index => $row) {
+
+                    $is_allowed = true;
+
+                    $birthDate = !empty($row['naissance']) ? Carbon::createFromFormat('d/m/Y', $row['naissance']) : null;
+                    $age = $birthDate ? $birthDate->age : null;
+
+                    $pourcentage = floatval($row['pourcentage_obtenu'] ?? 0);
+
+                    if ($pourcentage < 70 || $age !== null && $age < 21) {
+                        $is_allowed = false;
+                    }
+
                     try {
                         try {
                             $createdOn = Carbon::createFromFormat('d/m/Y H:i', $row['created_on']);
@@ -106,7 +125,6 @@ class CandidacyController extends Controller
                             Log::info("Ligne $index ignorée : email déjà existant pour cette période en base → $email");
                             continue;
                         }
-
 
                         $processedEmails[] = $email;
 
@@ -145,6 +163,7 @@ class CandidacyController extends Controller
                             'attestation_de_reussite_derniere_annee' => is_array($row['attestation_derussitedeladernireannedtude']) ? implode(', ', $row['attestation_derussitedeladernireannedtude']) : $row['attestation_derussitedeladernireannedtude'],
                             'user_last_login' => is_array($row['user_last_login']) ? implode(', ', $row['user_last_login']) : $row['user_last_login'],
                             'period_id' => $period->id,
+                            'is_allowed' => $is_allowed,
                         ]);
                     } catch (\Exception $e) {
                         Log::error("Erreur en traitant la ligne : " . $e->getMessage());
@@ -245,7 +264,51 @@ class CandidacyController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = Candidacy::query();
+            $query = Candidacy::query()->where('is_allowed', true);
+            $periodId = Period::where('year', now()->year)->first()->id;
+
+            if ($request->has('search') && $request->input('search') != null) {
+                $search = $request->input('search');
+
+                $query = $query->where(function ($q) use ($search) {
+                    $q->where('etn_nom', 'like', "%$search%")
+                        ->orWhere('etn_prenom', 'like', "%$search%")
+                        ->orWhere('etn_postnom', 'like', "%$search%")
+                        ->orWhere('ville', 'like', "%$search%");
+                });
+            }
+
+            if ($request->has('ville') && $request->input('ville') != null) {
+                $ville = $request->input('ville');
+                $query = $query->where('ville', 'LIKE', "%{$ville}%");
+            }
+
+            if ($request->has('periodId') && $request->input('periodId') != null) {
+                $periodId = $request->input('periodId');
+                $query = $query->where('period_id', $periodId);
+            } else {
+                $query = $query->where('period_id', $periodId);
+            }
+
+            $perPage = $request->input('per_page', 5);
+
+            $paginated = $query->paginate($perPage);
+
+            return CandidacyResource::collection($paginated);
+        } catch (\Throwable $th) {
+            Log::error($th);
+            return response()->json([
+                'code' => 500,
+                'description' => 'Erreur interne du serveur',
+                'message' => 'Erreur interne du serveur'
+            ]);
+        }
+    }
+
+    public function rejetedCandidacies(Request $request)
+    {
+        try {
+            $query = Candidacy::query()->where('is_allowed', false);
             $periodId = Period::where('year', now()->year)->first()->id;
 
             if ($request->has('search') && $request->input('search') != null) {

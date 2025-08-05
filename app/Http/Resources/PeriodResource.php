@@ -16,7 +16,7 @@ class PeriodResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        $this->loadCount('criteria', 'candidats');
+        $this->loadCount('criteria');
         return [
             "id" => $this->id,
             "year" => $this->year,
@@ -26,7 +26,10 @@ class PeriodResource extends JsonResource
                 ->distinct('user_id')
                 ->count('user_id'),
             "criteria_count" => $this->criteria_count,
-            "candidats_count" => $this->candidats_count,
+            "candidats_count" => DB::table('candidats')
+                ->where('is_allowed', true)
+                ->where('period_id', $this->id)
+                ->count('id'),
             "preselection_count" => Interview::count(),
             "selection_count" => 0,
             "created_at" => "2025-07-11T10:42:29.000000Z",
