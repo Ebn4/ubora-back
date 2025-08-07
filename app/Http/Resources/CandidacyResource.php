@@ -73,6 +73,7 @@ class CandidacyResource extends JsonResource
             "created_at" => $this->created_at,
             "updated_at" => $this->updated_at,
             "period_id" => $this->period_id,
+            "period_year" => $this->period?->year,
             'period_status' => $this->period?->status,
             "evaluators" => $this->dispatch,
             "evalutors_number" => $this->dispatch->count(),
