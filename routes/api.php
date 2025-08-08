@@ -44,6 +44,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/candidates/{id}/has-selection', [CandidacyController::class, "candidateHasSelection"]);
     Route::apiResource('period', PeriodController::class);
 
+    Route::get('evaluators/is-selector-evaluator', [EvaluatorController::class, 'isSelectorEvaluator']);
 
     Route::middleware("admin")->group(function () {
 
@@ -61,7 +62,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('preselection/periods/{period}/validate', [PreselectionController::class, 'canValidatePreselection']);
         Route::post('preselection/periods/{period}/validate', [PreselectionController::class, 'validatePreselection']);
 
-        Route::get('evaluators/is-selector-evaluator', [EvaluatorController::class, 'isSelectorEvaluator']);
         Route::get('evaluators/{period}/is-dispatched', [DispatchController::class, 'hasEvaluatorBeenDispatched']);
         Route::post("evaluators/{period}/dispatch", [DispatchController::class, 'dispatchPreselection']);
         Route::post("sendDispatchNotification", [DispatchController::class, 'sendDispatchNotification']);

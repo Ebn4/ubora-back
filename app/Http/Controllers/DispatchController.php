@@ -50,6 +50,7 @@ class DispatchController extends Controller
         }
 
         $candidacies = Candidacy::query()
+            ->where("is_allowed", true)
             ->where("period_id", $periodId)
             ->get();
 
