@@ -112,10 +112,6 @@ class EvaluatorController extends Controller
                 throw new \Exception("Vous n'avez plus le droit d'ajouter un evaluateur de PRESELECTION pour cette periode.");
             }
 
-            if ($period->status == PeriodStatusEnum::STATUS_SELECTION->value && $type == EvaluatorTypeEnum::EVALUATOR_SELECTION->value) {
-                throw new \Exception("Vous n'avez plus le droit d'ajouter un evaluateur de SELECTION pour cette periode.");
-            }
-
             $this->evaluatorService->addEvaluator($user->id, $request->periodId, $type);
         } catch (\Exception $e) {
             throw  new HttpResponseException(
