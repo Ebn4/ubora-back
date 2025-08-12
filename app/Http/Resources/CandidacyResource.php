@@ -34,6 +34,7 @@ class CandidacyResource extends JsonResource
                     $evaluator->pivot?->evaluator_id === $this->evaluator_id
             )
         )?->pivot?->id;
+        $periodId = $this->period_id;
 
         return [
             "id" => $this->id,
@@ -92,7 +93,9 @@ class CandidacyResource extends JsonResource
                 ->where('is_allowed', true)
                 ->distinct('ville')
                 ->count('ville'),
-            "preselection_count" => Interview::count(),
+            "preselection_count" => Interview::whereHas('candidacy', function ($query) use ($periodId) {
+                $query->where('period_id', $periodId);
+            })->count(),
             "selection_count" => 0,
             "candidacy_preselection" => Preselection::where("dispatch_preselections_id", $idPivot)->exists(),
             "hasSelected" => $this->interview()->whereHas('selectionResults')->exists()
