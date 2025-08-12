@@ -46,6 +46,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('period', PeriodController::class);
 
     Route::get('evaluators/is-selector-evaluator', [EvaluatorController::class, 'isSelectorEvaluator']);
+    Route::get('evaluators/is-preselector-evaluator', [EvaluatorController::class, 'isPreselectorEvaluator']);
 
     Route::middleware("admin")->group(function () {
 
