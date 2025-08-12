@@ -6,14 +6,17 @@ use App\Enums\EvaluatorTypeEnum;
 use App\Enums\PeriodStatusEnum;
 use App\Http\Requests\CandidateSelectionRequest;
 use App\Http\Resources\CandidacyResource;
+use App\Http\Resources\CandidatSelectionResultResource;
 use App\Http\Resources\EvaluatorRessource;
 use App\Http\Resources\InterviewResource;
+use App\Http\Resources\SelectionResultResource;
 use App\Models\Candidacy;
 use App\Models\Criteria;
 use App\Models\EvaluationFinale;
 use App\Models\Evaluator;
 use App\Models\Interview;
 use App\Models\Period;
+use App\Models\SelectionResult;
 use Carbon\Carbon;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
@@ -606,6 +609,14 @@ class CandidacyController extends Controller
             ->paginate($perPage);
 
         return CandidacyResource::collection($candidates);
+    }
+
+    public function getCandidateSelectionResultByCriteria(int $id, int $criterionId): SelectionResultResource
+    {
+        return new SelectionResultResource(SelectionResult::query()
+            ->where('interview_id', $id)
+            ->where('criteria_id', $criterionId)
+            ->first());
     }
 
     public function uploadZipFile(Request $request)
