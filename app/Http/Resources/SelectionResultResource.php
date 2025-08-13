@@ -15,10 +15,10 @@ class SelectionResultResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'criteriaId' => $this->criteria_id,
-            'interviewId' => $this->interview_id,
-            'evaluatorId' => $this->evaluator_id,
-            'result' => $this->result
+            'criteriaId' => $this->criteria_id ?? 0,
+            'interviewId' => $this?->interview_id ?? 0,
+            'evaluatorId' => $this?->evaluator_id ?? 0,
+            'result' => $this?->result  ?? 0
         ];
     }
 }
