@@ -37,6 +37,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('candidacies', CandidacyController::class)->only(['index', 'destroy', "show"]);
     Route::get('getYearsPeriod', [PeriodController::class, 'getYearsPeriod']);
 
+    Route::get('periods/{id}/candidates/selection',[CandidacyController::class, 'getSelectionCandidates']);
     Route::get('candidates/{interviewId}/criterias/{criteriaId}/result', [CandidacyController::class, 'getCandidateSelectionResultByCriteria']);
     Route::get('candidates/{id}/evaluators', [CandidacyController::class, 'getCandidateEvaluators']);
     Route::get('candidates/interviews', [CandidacyController::class, 'getSelectedCandidates']);
@@ -46,6 +47,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('period', PeriodController::class);
 
     Route::get('evaluators/is-selector-evaluator', [EvaluatorController::class, 'isSelectorEvaluator']);
+    Route::get('evaluators/is-preselector-evaluator', [EvaluatorController::class, 'isPreselectorEvaluator']);
 
     Route::middleware("admin")->group(function () {
 

@@ -195,4 +195,19 @@ class EvaluatorController extends Controller
             "isSelectorEvaluator" => $evaluators
         ]);
     }
+
+    public function isPreselectorEvaluator(): JsonResponse
+    {
+        $userId = auth()->user()->id;
+        $evaluators = Evaluator::query()
+            ->where('type', EvaluatorTypeEnum::EVALUATOR_PRESELECTION->value)
+            ->where('user_id', $userId)
+            ->whereHas('period', function ($query) {
+                $query->where('year', Carbon::now()->year);
+            })
+            ->exists();
+        return response()->json([
+            "isPreselectorEvaluator" => $evaluators
+        ]);
+    }
 }

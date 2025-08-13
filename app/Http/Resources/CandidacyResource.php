@@ -98,7 +98,8 @@ class CandidacyResource extends JsonResource
             })->count(),
             "selection_count" => 0,
             "candidacy_preselection" => Preselection::where("dispatch_preselections_id", $idPivot)->exists(),
-            "hasSelected" => $this->interview()->whereHas('selectionResults')->exists()
+            "hasSelected" => $this->interview()->whereHas('selectionResults')->exists(),
+            "selectionMean" => $this->selectionMean ?? 0
         ];
     }
 }

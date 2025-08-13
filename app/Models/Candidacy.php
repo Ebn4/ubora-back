@@ -72,9 +72,9 @@ class Candidacy extends Model
         return $this->belongsToMany(Evaluator::class, 'dispatch_preselections')->withPivot('id');
     }
 
-    public function interview(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function interview(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        return $this->hasMany(Interview::class);
+        return $this->hasOne(Interview::class);
     }
 
     public function dispatchPreselections(): \Illuminate\Database\Eloquent\Relations\HasMany
