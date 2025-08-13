@@ -183,7 +183,7 @@ class CandidacyController extends Controller
             return response()->json([
                 'code' => 500,
                 'description' => 'Error',
-                'message' => $th->getMessage(),
+                'message' => "Erreur lors de l'importation des candidatures",
             ]);
         }
     }
