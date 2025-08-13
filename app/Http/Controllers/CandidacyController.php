@@ -609,6 +609,42 @@ class CandidacyController extends Controller
         return CandidacyResource::collection($candidates);
     }
 
+    public function getSelectionCandidates(Request $request, int $periodId): AnonymousResourceCollection
+    {
+        $perPage = 10;
+
+        if ($request->has('perPage')) {
+            $perPage = $request->input('perPage');
+        }
+
+        $candidates = Candidacy::query()
+            ->with(['interview.selectionResults'])
+            ->where('period_id', $periodId)
+            ->whereHas('interview.selectionResults');
+
+        if ($request->has('search')) {
+            $search = $request->input('search');
+            $candidates = $candidates->whereLike("etn_nom", "%$search%");
+        }
+
+        $candidates = $candidates
+            ->paginate($perPage);
+
+        $candidates->getCollection()->transform(function ($candidate) {
+            $selectionsResults[] = $candidate->interview->selectionResults;
+            foreach ($selectionsResults as $selectionResult) {
+                $sum = 0;
+                foreach ($selectionResult as $result) {
+                    $sum += $result->pivot->result;
+                }
+                $candidate->selectionMean = $sum / count($selectionsResults);
+            }
+            return $candidate;
+        });
+
+        return CandidacyResource::collection($candidates);
+    }
+
     public function getCandidateSelectionResultByCriteria(int $id, int $criterionId): SelectionResultResource
     {
         try {
