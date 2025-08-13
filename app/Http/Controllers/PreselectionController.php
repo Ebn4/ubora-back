@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\PeriodStatusEnum;
 use App\Models\Candidacy;
 use App\Models\Interview;
+use App\Models\Period;
 use App\Models\Preselection;
 use http\Env\Response;
 use Illuminate\Http\Request;
@@ -33,6 +35,19 @@ class PreselectionController extends Controller
     public function store(Request $request)
     {
         Log::info('Données reçues pour pré-sélection : ', $request->all());
+        $currentYear = date("Y");
+
+        $period_id = Period::query()->where("year", $currentYear)->firstOrFail()->get('id');
+        $status = Period::query()
+            ->where('id', $period_id)
+            ->value('status');
+
+        if ($status != PeriodStatusEnum::STATUS_PRESELECTION) {
+            return response()->json([
+                'success' => false,
+                'message' => 'La période n\'est pas en statut de présélection.',
+            ], 400);
+        }
 
         try {
             $validated = $request->validate([
