@@ -37,10 +37,8 @@ class PreselectionController extends Controller
         Log::info('Données reçues pour pré-sélection : ', $request->all());
         $currentYear = date("Y");
 
-        $period_id = Period::query()->where("year", $currentYear)->firstOrFail()->get('id');
-        $status = Period::query()
-            ->where('id', $period_id)
-            ->value('status');
+        $period = Period::query()->where("year", $currentYear)->firstOrFail();
+        $status = $period->status;
 
         if ($status != PeriodStatusEnum::STATUS_PRESELECTION) {
             return response()->json([
