@@ -2,11 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\EvaluatorTypeEnum;
 use App\Enums\PeriodStatusEnum;
 use App\Http\Requests\CandidateSelectionRequest;
 use App\Http\Resources\CandidacyResource;
-use App\Http\Resources\CandidatSelectionResultResource;
 use App\Http\Resources\EvaluatorRessource;
 use App\Http\Resources\InterviewResource;
 use App\Http\Resources\SelectionResultResource;
@@ -613,10 +611,22 @@ class CandidacyController extends Controller
 
     public function getCandidateSelectionResultByCriteria(int $id, int $criterionId): SelectionResultResource
     {
-        return new SelectionResultResource(SelectionResult::query()
-            ->where('interview_id', $id)
-            ->where('criteria_id', $criterionId)
-            ->first());
+        try {
+            $result = SelectionResult::query()
+                ->where('interview_id', $id)
+                ->where('criteria_id', $criterionId)
+                ->first();
+
+            if (!$result) {
+                return new SelectionResultResource(null);
+            }
+
+            return new SelectionResultResource($result);
+        } catch (\Exception $e) {
+            throw  new HttpResponseException(
+                response: response()->json(['errors' => $e->getMessage()], 400)
+            );
+        }
     }
 
     public function uploadZipFile(Request $request)
