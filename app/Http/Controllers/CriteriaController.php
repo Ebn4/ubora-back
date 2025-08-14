@@ -29,7 +29,6 @@ class CriteriaController extends Controller
                         ->where('period_criteria.period_id', '=', $periodId);
                 })
                     ->where('period_id', $request->input('periodId'))
-                    ->where('criterias.status', '=', 'actif')
                     ->select(
                         'criterias.id',
                         'criterias.name',
