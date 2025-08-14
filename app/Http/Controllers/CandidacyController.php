@@ -590,9 +590,13 @@ class CandidacyController extends Controller
             $perPage = $request->input('perPage');
         }
 
-        $currentYear = date("Y");
-
-        $period = Period::query()->where("year", $currentYear)->firstOrFail();
+        if ($request->has('periodId')) {
+            $periodId = $request->get('periodId');
+            $period = Period::query()->findOrFail($periodId);
+        } else {
+            $currentYear = date("Y");
+            $period = Period::query()->where("year", $currentYear)->firstOrFail();
+        }
 
         $candidates = Candidacy::query()
             ->where("period_id", $period->id)
