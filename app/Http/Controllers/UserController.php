@@ -24,7 +24,6 @@ class UserController extends Controller
             $search = $request->input('search');
             $users = $users->whereLike('name', "%$search%")
                 ->orWhereLike('email', "%$search%");
-
         }
 
         if ($request->has('role')) {
@@ -34,6 +33,11 @@ class UserController extends Controller
 
         $users = $users->paginate($perPage);
         return UserResource::collection($users);
+    }
+
+    public function show(Request $request)
+    {
+        return new UserResource($request->user());
     }
 
     public function destroy(int $id): void
