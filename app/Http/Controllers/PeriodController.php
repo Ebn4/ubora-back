@@ -38,8 +38,18 @@ class PeriodController extends Controller
 
     public function getYearsPeriod()
     {
-        $query = Period::orderBy('year', 'asc')->get(['id', 'year']);
-        return response()->json($query);
+        $query = Period::orderBy('year', 'desc')->get(['id', 'year']);
+
+        $yearsWithPeriods = $query->map(function ($period) {
+            $nextYear = $period->year + 1;
+
+            return [
+                'id' => $period->id,
+                'year' => "{$period->year}-{$nextYear}",
+            ];
+        });
+
+        return response()->json($yearsWithPeriods);
     }
 
     public function store(Request $request): JsonResponse
