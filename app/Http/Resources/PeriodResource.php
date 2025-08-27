@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Candidacy;
+use App\Models\DispatchPreselection;
 use Illuminate\Support\Facades\DB;
 use App\Models\Interview;
 use Illuminate\Http\Request;
@@ -17,6 +19,22 @@ class PeriodResource extends JsonResource
     public function toArray(Request $request): array
     {
         $id = $this->id;
+        $countCandidaciesAllow = Candidacy::where('period_id', $id)
+            ->where('is_allowed', true)
+            ->count();
+
+        $countCandidaciesPreselection = DispatchPreselection::whereHas('candidacy', function ($query) use ($id) {
+            $query->where('period_id', $id);
+        })
+            ->distinct('candidacy_id')
+            ->count();
+
+        if ($countCandidaciesAllow == 0) {
+            $progressionPreselection = 0;
+        } else {
+            $progressionPreselection = ceil(($countCandidaciesPreselection / $countCandidaciesAllow) * 100);
+        }
+
         $this->loadCount('criteria');
         return [
             "id" => $this->id,
@@ -37,6 +55,7 @@ class PeriodResource extends JsonResource
             "selection_count" => 0,
             "created_at" => "2025-07-11T10:42:29.000000Z",
             "updated_at" => "2025-07-11T10:42:29.000000Z",
+            "progression_preselection" => $progressionPreselection . "%",
         ];
     }
 }
