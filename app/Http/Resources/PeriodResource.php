@@ -20,7 +20,7 @@ class PeriodResource extends JsonResource
         $this->loadCount('criteria');
         return [
             "id" => $this->id,
-            "year" => $this->year,
+            "year" => $this->year . "-" . ($this->year + 1),
             "status" => $this->status,
             "evaluators_count" => DB::table('evaluators')
                 ->where('period_id', $this->id)

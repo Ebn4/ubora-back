@@ -18,9 +18,7 @@ Route::post('login', [AuthenticationController::class, 'login']);
 Route::apiResource('users', UserController::class)->only(['store']);
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/user', function (Request $request) {
-        return $request->user();
-    });
+    Route::get('/user', [UserController::class, 'show']);
 
     Route::get('has-admin-role', HasAdminRoleController::class);
 

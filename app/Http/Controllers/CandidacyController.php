@@ -64,20 +64,21 @@ class CandidacyController extends Controller
     public function uploadCandidacies(Request $request)
     {
         $validated = $request->validate([
-            'year' => [
+            'id' => [
                 'nullable',
                 'integer',
-                Rule::exists('periods', 'year'),
+                Rule::exists('periods', 'id'),
             ],
             'rows' => 'required|array|min:1',
         ]);
 
         try {
             $rows = $validated['rows'];
-            $year = $request->input('year');
-            $currentYear = Carbon::createFromFormat('Y', $year);
+            $id = $request->input('id');
             $processedEmails = [];
-            $period = Period::firstOrCreate(['year' => $currentYear->year]);
+            $period = Period::findOrFail($id);
+            $year = $period->year;
+            $currentYear = Carbon::createFromFormat('Y', $year);
 
             if ($period->status !== PeriodStatusEnum::STATUS_DISPATCH->value) {
                 return response()->json([
@@ -689,7 +690,6 @@ class CandidacyController extends Controller
             $zip->extract(storage_path('app/public/documents'));
 
             return response()->json(['message' => 'Fichier ZIP téléchargé et extrait avec succès.']);
-
         } catch (\Exception $e) {
             throw  new HttpResponseException(
                 response: response()->json(['errors' => $e->getMessage()], 400)

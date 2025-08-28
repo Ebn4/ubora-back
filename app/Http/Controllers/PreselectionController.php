@@ -40,12 +40,12 @@ class PreselectionController extends Controller
         $period = Period::query()->where("year", $currentYear)->firstOrFail();
         $status = $period->status;
 
-        // if ($status != PeriodStatusEnum::STATUS_PRESELECTION) {
-        //     return response()->json([
-        //         'success' => false,
-        //         'message' => 'La période n\'est pas en statut de présélection.',
-        //     ], 400);
-        // }
+        if ($status != PeriodStatusEnum::STATUS_PRESELECTION->value) {
+            return response()->json([
+                'success' => false,
+                'message' => 'La période n\'est pas en statut de présélection.'
+            ], 400);
+        }
 
         try {
             $validated = $request->validate([
@@ -74,7 +74,7 @@ class PreselectionController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Erreur lors de l\'enregistrement des pré-sélections',
+                'message' => 'Erreur lors de l\'enregistrement des pré-sélections'
             ], 500);
         }
     }

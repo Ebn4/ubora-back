@@ -127,13 +127,17 @@ class DispatchController extends Controller
             ->has("preselections")
             ->count();
 
+        $periodStatus = Period::query()
+            ->where("id", $periodId)
+            ->value("status");
+
         $count = $query->count();
 
         $perPage = $request->input('per_page', 5);
         $paginated = $query->paginate($perPage);
 
         try {
-            $paginated->getCollection()->transform(function ($item) use ($candidaciesPreselection, $count, $evaluateurId) {
+            $paginated->getCollection()->transform(function ($item) use ($candidaciesPreselection, $count, $evaluateurId, $periodStatus) {
                 $statusCandidacy = DispatchPreselection::where('candidacy_id', $item->id)
                     ->where('evaluator_id', $evaluateurId)
                     ->has('preselections')
@@ -142,6 +146,7 @@ class DispatchController extends Controller
                 $item->candidaciesPreselection = $candidaciesPreselection;
                 $item->statusCandidacy = $statusCandidacy;
                 $item->totalCandidats = $count;
+                $item->periodStatus = $periodStatus;
 
                 return $item;
             });
