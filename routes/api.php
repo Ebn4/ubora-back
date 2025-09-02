@@ -56,6 +56,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('users', UserController::class)->only(["index", "destroy"]);
 
         Route::post('upload-documents', [CandidacyController::class, 'uploadZipFile']);
+        Route::get('upload-settings', [CandidacyController::class, 'getUploadSettings']);
 
         Route::get('periods/{period}/criteria', [PeriodController::class, 'getCriteriaPeriod']);
         Route::put('periods/{period}/status', [PeriodController::class, 'changePeriodStatus']);

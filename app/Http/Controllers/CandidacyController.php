@@ -672,28 +672,217 @@ class CandidacyController extends Controller
 
     public function uploadZipFile(Request $request)
     {
-        $request->validate([
-            'zip_file' => 'required|file|mimes:zip',
+        // Log the incoming request for debugging
+        Log::info('ZIP file upload request received', [
+            'request_data' => $request->all(),
+            'files' => $request->allFiles(),
+            'user_id' => auth()->id() ?? 'unauthenticated',
+            'content_type' => $request->header('Content-Type'),
+            'content_length' => $request->header('Content-Length'),
+            'php_upload_settings' => [
+                'upload_max_filesize' => ini_get('upload_max_filesize'),
+                'post_max_size' => ini_get('post_max_size'),
+                'max_execution_time' => ini_get('max_execution_time'),
+                'memory_limit' => ini_get('memory_limit')
+            ]
         ]);
 
-        try {
-            $zipPath = $request->file('zip_file')->store('documents', 'public');
-            $fullPath = storage_path("app/public/{$zipPath}");
+        // Check if we can handle the file size
+        $contentLength = $request->header('Content-Length') ? (int)$request->header('Content-Length') : 0;
+        $uploadMaxSize = $this->parseSize(ini_get('upload_max_filesize'));
+        
+        if ($contentLength > $uploadMaxSize) {
+            Log::error('ZIP file upload failed: File too large for current PHP settings', [
+                'content_length' => $contentLength,
+                'upload_max_filesize' => ini_get('upload_max_filesize'),
+                'post_max_size' => ini_get('post_max_size')
+            ]);
+            
+            return response()->json([
+                'errors' => [
+                    'zip_file' => [
+                        'File size (' . round($contentLength / 1024 / 1024, 2) . 'MB) exceeds server limit (' . ini_get('upload_max_filesize') . '). ' .
+                        'Please contact administrator to increase upload limits or compress your file.'
+                    ]
+                ],
+                'message' => 'File upload failed due to server configuration limits.',
+                'server_limits' => [
+                    'upload_max_filesize' => ini_get('upload_max_filesize'),
+                    'post_max_size' => ini_get('post_max_size'),
+                    'content_length' => $contentLength,
+                    'file_size_mb' => round($contentLength / 1024 / 1024, 2)
+                ]
+            ], 422);
+        }
 
+        try {
+            // Validate the request with more specific rules
+            $request->validate([
+                'zip_file' => [
+                    'required',
+                    'file',
+                    'mimes:zip',
+                    'max:10240', // 10MB in kilobytes (10 * 1024)
+                ],
+            ], [
+                'zip_file.max' => 'The ZIP file size must not exceed 10MB.',
+                'zip_file.mimes' => 'The file must be a valid ZIP archive.',
+                'zip_file.required' => 'Please select a ZIP file to upload.',
+            ]);
+
+            // Check if file exists and is valid
+            if (!$request->hasFile('zip_file')) {
+                Log::error('ZIP file upload failed: No file in request');
+                throw new \Exception('No ZIP file provided in the request');
+            }
+
+            $file = $request->file('zip_file');
+            
+            // Log file details
+            Log::info('ZIP file details', [
+                'original_name' => $file->getClientOriginalName(),
+                'mime_type' => $file->getMimeType(),
+                'size' => $file->getSize(),
+                'error' => $file->getError(),
+                'is_valid' => $file->isValid()
+            ]);
+
+            // Check if file upload was successful
+            if (!$file->isValid()) {
+                $errorCode = $file->getError();
+                $errorMessage = $file->getErrorMessage();
+                
+                // Map PHP upload error codes to user-friendly messages
+                $errorMessages = [
+                    UPLOAD_ERR_INI_SIZE => 'File size exceeds PHP upload limit',
+                    UPLOAD_ERR_FORM_SIZE => 'File size exceeds form limit',
+                    UPLOAD_ERR_PARTIAL => 'File was only partially uploaded',
+                    UPLOAD_ERR_NO_FILE => 'No file was uploaded',
+                    UPLOAD_ERR_NO_TMP_DIR => 'Missing temporary folder',
+                    UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk',
+                    UPLOAD_ERR_EXTENSION => 'A PHP extension stopped the file upload'
+                ];
+                
+                $userMessage = $errorMessages[$errorCode] ?? $errorMessage;
+                
+                Log::error('ZIP file upload failed: Invalid file', [
+                    'error_code' => $errorCode,
+                    'error_message' => $errorMessage,
+                    'user_message' => $userMessage,
+                    'file_details' => [
+                        'original_name' => $file->getClientOriginalName(),
+                        'size' => $file->getSize(),
+                        'mime_type' => $file->getMimeType()
+                    ]
+                ]);
+                
+                throw new \Exception($userMessage);
+            }
+
+            // Store the file
+            $zipPath = $file->store('documents', 'public');
+            if (!$zipPath) {
+                Log::error('ZIP file storage failed: Could not store file');
+                throw new \Exception('Failed to store the ZIP file');
+            }
+
+            $fullPath = storage_path("app/public/{$zipPath}");
+            Log::info('ZIP file stored successfully', ['path' => $fullPath]);
+
+            // Open and validate ZIP
             $zip = new Zip();
             $zip = $zip->open($fullPath);
 
             if (!$zip->check($fullPath)) {
-                throw new \Exception("Invalid zip file");
+                Log::error('ZIP file validation failed: Invalid ZIP format');
+                throw new \Exception("Invalid ZIP file format");
             }
 
-            $zip->extract(storage_path('app/public/documents'));
+            // Extract ZIP contents
+            $extractPath = storage_path('app/public/documents');
+            $zip->extract($extractPath);
+            
+            Log::info('ZIP file extracted successfully', [
+                'extract_path' => $extractPath,
+                'stored_path' => $zipPath
+            ]);
 
             return response()->json(['message' => 'Fichier ZIP téléchargé et extrait avec succès.']);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Handle validation errors specifically
+            Log::error('ZIP file validation error', [
+                'errors' => $e->errors(),
+                'request_data' => $request->all(),
+                'user_id' => auth()->id() ?? 'unauthenticated'
+            ]);
+            
+            throw new HttpResponseException(
+                response: response()->json(['errors' => $e->errors()], 422)
+            );
+
         } catch (\Exception $e) {
-            throw  new HttpResponseException(
+            // Log the complete error with stack trace
+            Log::error('Error uploading ZIP file', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all(),
+                'user_id' => auth()->id() ?? 'unauthenticated',
+                'file_upload_info' => $request->hasFile('zip_file') ? [
+                    'file_exists' => true,
+                    'file_size' => $request->file('zip_file')->getSize(),
+                    'file_error' => $request->file('zip_file')->getError(),
+                    'file_mime' => $request->file('zip_file')->getMimeType()
+                ] : ['file_exists' => false]
+            ]);
+
+            throw new HttpResponseException(
                 response: response()->json(['errors' => $e->getMessage()], 400)
             );
         }
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/upload-settings",
+     *     summary="Get current PHP upload settings",
+     *     operationId="getUploadSettings",
+     *     tags={"File Upload"},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Current PHP upload settings",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="upload_max_filesize", type="string"),
+     *             @OA\Property(property="post_max_size", type="string"),
+     *             @OA\Property(property="max_execution_time", type="string"),
+     *             @OA\Property(property="memory_limit", type="string")
+     *         )
+     *     )
+     * )
+     */
+    public function getUploadSettings()
+    {
+        return response()->json([
+            'upload_max_filesize' => ini_get('upload_max_filesize'),
+            'post_max_size' => ini_get('post_max_size'),
+            'max_execution_time' => ini_get('max_execution_time'),
+            'memory_limit' => ini_get('memory_limit'),
+            'max_file_uploads' => ini_get('max_file_uploads'),
+            'file_uploads' => ini_get('file_uploads')
+        ]);
+    }
+
+    private function parseSize($size)
+    {
+        $unit = preg_replace('/[^bkmgt]/i', '', $size); // Remove the non-unit characters from the size.
+        $size = preg_replace('/[^0-9.]/', '', $size); // Remove all non-numeric characters from the size.
+        if ($unit) {
+            // Find the position of the unit in the ordered string which has the highest unit.
+            // This determines the size multiplier.
+            return $size * pow(1024, stripos('bkmgt', $unit[0]));
+        }
+        return (int)$size;
     }
 }
