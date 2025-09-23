@@ -587,8 +587,8 @@ class CandidacyController extends Controller
     {
         $perPage = 10;
 
-        if ($request->has('perPage')) {
-            $perPage = $request->input('perPage');
+        if ($request->has('per_page')) {
+            $perPage = $request->input('per_page');
         }
 
         if ($request->has('periodId')) {
@@ -690,14 +690,14 @@ class CandidacyController extends Controller
         // Check if we can handle the file size
         $contentLength = $request->header('Content-Length') ? (int)$request->header('Content-Length') : 0;
         $uploadMaxSize = $this->parseSize(ini_get('upload_max_filesize'));
-        
+
         if ($contentLength > $uploadMaxSize) {
             Log::error('ZIP file upload failed: File too large for current PHP settings', [
                 'content_length' => $contentLength,
                 'upload_max_filesize' => ini_get('upload_max_filesize'),
                 'post_max_size' => ini_get('post_max_size')
             ]);
-            
+
             return response()->json([
                 'errors' => [
                     'zip_file' => [
@@ -737,7 +737,7 @@ class CandidacyController extends Controller
             }
 
             $file = $request->file('zip_file');
-            
+
             // Log file details
             Log::info('ZIP file details', [
                 'original_name' => $file->getClientOriginalName(),
@@ -751,7 +751,7 @@ class CandidacyController extends Controller
             if (!$file->isValid()) {
                 $errorCode = $file->getError();
                 $errorMessage = $file->getErrorMessage();
-                
+
                 // Map PHP upload error codes to user-friendly messages
                 $errorMessages = [
                     UPLOAD_ERR_INI_SIZE => 'File size exceeds PHP upload limit',
@@ -762,9 +762,9 @@ class CandidacyController extends Controller
                     UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk',
                     UPLOAD_ERR_EXTENSION => 'A PHP extension stopped the file upload'
                 ];
-                
+
                 $userMessage = $errorMessages[$errorCode] ?? $errorMessage;
-                
+
                 Log::error('ZIP file upload failed: Invalid file', [
                     'error_code' => $errorCode,
                     'error_message' => $errorMessage,
@@ -775,7 +775,7 @@ class CandidacyController extends Controller
                         'mime_type' => $file->getMimeType()
                     ]
                 ]);
-                
+
                 throw new \Exception($userMessage);
             }
 
@@ -801,7 +801,7 @@ class CandidacyController extends Controller
             // Extract ZIP contents
             $extractPath = storage_path('app/public/documents');
             $zip->extract($extractPath);
-            
+
             Log::info('ZIP file extracted successfully', [
                 'extract_path' => $extractPath,
                 'stored_path' => $zipPath
@@ -816,7 +816,7 @@ class CandidacyController extends Controller
                 'request_data' => $request->all(),
                 'user_id' => auth()->id() ?? 'unauthenticated'
             ]);
-            
+
             throw new HttpResponseException(
                 response: response()->json(['errors' => $e->errors()], 422)
             );
