@@ -885,4 +885,42 @@ class CandidacyController extends Controller
         }
         return (int)$size;
     }
+
+    public function getSelectionStats(Request $request)
+    {
+        $periodId = $request->input('periodId');
+        if (!$periodId || !is_numeric($periodId)) {
+            return response()->json([
+                'error' => 'Le paramètre periodId est requis et doit être un nombre.'
+            ], 400);
+        }
+
+        $periodId = (int) $periodId;
+
+        try {
+            // Vérifier que la période existe
+            $period = Period::findOrFail($periodId);
+
+            // Total des candidats en phase de sélection (avec entretien)
+            $total = Candidacy::where("period_id", $period->id)
+                ->whereHas('interview')
+                ->count();
+
+            // Total des candidats évalués (avec au moins un SelectionResult)
+            $evaluated = Candidacy::where("period_id", $period->id)
+                ->whereHas('interview.selectionResults') //
+                ->count();
+
+            return response()->json([
+                'total' => $total,
+                'evaluated' => $evaluated,
+                'pending' => $total - $evaluated,
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Erreur lors du calcul des statistiques: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
