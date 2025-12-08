@@ -598,7 +598,7 @@ class CandidacyController extends Controller
 
     public function getSelectedCandidates(Request $request): AnonymousResourceCollection
     {
-        $perPage = 10;
+        $perPageInput = $request->input('per_page', 10);
 
         if ($request->has('per_page')) {
             $perPage = $request->input('per_page');
@@ -621,8 +621,16 @@ class CandidacyController extends Controller
             $candidates = $candidates->whereLike("etn_nom", "%$search%");
         }
 
-        $candidates = $candidates
-            ->paginate($perPage);
+         if (is_string($perPageInput) && strtolower($perPageInput) === 'all') {
+            $candidates = $candidates->get();
+        } else {
+            // Conversion en int avec valeur par défaut
+            $perPage = (int)$perPageInput;
+            if ($perPage <= 0) {
+                $perPage = 10;
+            }
+            $candidates = $candidates->paginate($perPage);
+        }
 
         return CandidacyResource::collection($candidates);
     }
@@ -631,8 +639,8 @@ class CandidacyController extends Controller
     {
         $perPage = 10;
 
-        if ($request->has('perPage')) {
-            $perPage = $request->input('perPage');
+        if ($request->has('per_page')) {
+            $perPage = $request->input('per_page');
         }
 
         $candidates = Candidacy::query()
@@ -645,22 +653,45 @@ class CandidacyController extends Controller
             $candidates = $candidates->whereLike("etn_nom", "%$search%");
         }
 
-        $candidates = $candidates
-            ->paginate($perPage);
+        // Gestion du cas "all"
+        if ($perPage === 'all') {
+            // Récupérer tous les candidats sans pagination
+            $candidates = $candidates->get();
 
-        $candidates->getCollection()->transform(function ($candidate) {
-            $selectionsResults[] = $candidate->interview->selectionResults;
-            foreach ($selectionsResults as $selectionResult) {
-                $sum = 0;
-                foreach ($selectionResult as $result) {
-                    $sum += $result->pivot->result;
+            // Appliquer la même transformation que votre code original
+            $candidates->transform(function ($candidate) {
+                $selectionsResults[] = $candidate->interview->selectionResults;
+                foreach ($selectionsResults as $selectionResult) {
+                    $sum = 0;
+                    foreach ($selectionResult as $result) {
+                        $sum += $result->pivot->result;
+                    }
+                    $candidate->selectionMean = $sum / count($selectionsResults);
                 }
-                $candidate->selectionMean = $sum / count($selectionsResults);
-            }
-            return $candidate;
-        });
+                return $candidate;
+            });
 
-        return CandidacyResource::collection($candidates);
+            // Retourner sans pagination
+            return CandidacyResource::collection($candidates);
+        } else {
+            // Pagination normale (votre code original inchangé)
+            $candidates = $candidates->paginate($perPage);
+
+            // Votre transformation originale exactement comme elle était
+            $candidates->getCollection()->transform(function ($candidate) {
+                $selectionsResults[] = $candidate->interview->selectionResults;
+                foreach ($selectionsResults as $selectionResult) {
+                    $sum = 0;
+                    foreach ($selectionResult as $result) {
+                        $sum += $result->pivot->result;
+                    }
+                    $candidate->selectionMean = $sum / count($selectionsResults);
+                }
+                return $candidate;
+            });
+
+            return CandidacyResource::collection($candidates);
+        }
     }
 
     public function getCandidateSelectionResultByCriteria(int $id, int $criterionId): SelectionResultResource
