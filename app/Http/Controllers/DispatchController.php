@@ -82,7 +82,7 @@ class DispatchController extends Controller
         ]);
     }
 
-    public function CandidaciesDispatchByEvaluator(Request $request)
+        public function CandidaciesDispatchByEvaluator(Request $request)
     {
         $periodId = $request->input("periodId");
         $dataEvaluateur = Evaluator::query()
@@ -134,10 +134,14 @@ class DispatchController extends Controller
         $count = $query->count();
 
         $perPage = $request->input('per_page', 5);
-        $paginated = $query->paginate($perPage);
 
-        try {
-            $paginated->getCollection()->transform(function ($item) use ($candidaciesPreselection, $count, $evaluateurId, $periodStatus) {
+        // Gestion du cas "all"
+        if ($perPage === 'all') {
+            // Récupérer tous les résultats sans pagination
+            $results = $query->get();
+
+            // Appliquer la même transformation
+            $results->transform(function ($item) use ($candidaciesPreselection, $count, $evaluateurId, $periodStatus) {
                 $statusCandidacy = DispatchPreselection::where('candidacy_id', $item->id)
                     ->where('evaluator_id', $evaluateurId)
                     ->has('preselections')
@@ -151,13 +155,34 @@ class DispatchController extends Controller
                 return $item;
             });
 
-            return $paginated;
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Une erreur est survenue lors de la récupération des périodes.',
-                'error' => $e->getMessage()
-            ], 500);
+            return $results;
+        } else {
+            // Pagination normale (code original inchangé)
+            $paginated = $query->paginate($perPage);
+
+            try {
+                $paginated->getCollection()->transform(function ($item) use ($candidaciesPreselection, $count, $evaluateurId, $periodStatus) {
+                    $statusCandidacy = DispatchPreselection::where('candidacy_id', $item->id)
+                        ->where('evaluator_id', $evaluateurId)
+                        ->has('preselections')
+                        ->exists();
+
+                    $item->candidaciesPreselection = $candidaciesPreselection;
+                    $item->statusCandidacy = $statusCandidacy;
+                    $item->totalCandidats = $count;
+                    $item->periodStatus = $periodStatus;
+
+                    return $item;
+                });
+
+                return $paginated;
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Une erreur est survenue lors de la récupération des périodes.',
+                    'error' => $e->getMessage()
+                ], 500);
+            }
         }
     }
 
