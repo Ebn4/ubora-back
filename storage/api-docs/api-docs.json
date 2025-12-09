@@ -6,6 +6,115 @@
         "version": "1.0.0"
     },
     "paths": {
+        "/api/login": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Authentifier un utilisateur",
+                "description": "Permet de se connecter avec un CUID et un mot de passe. Retourne les informations de l'utilisateur et un token d'authentification (ex: JWT dans UserResource).",
+                "operationId": "login",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "cuid",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "cuid": {
+                                        "description": "Identifiant unique de l'utilisateur",
+                                        "type": "string",
+                                        "example": "AB12345"
+                                    },
+                                    "password": {
+                                        "description": "Mot de passe de l'utilisateur",
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "s3cr3tP@ss"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Authentification réussie",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "token": {
+                                            "type": "string"
+                                        },
+                                        "user": {
+                                            "$ref": "#/components/schemas/UserResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Erreur d'authentification (CUID invalide, mot de passe incorrect, utilisateur désactivé, etc.)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "errors": {
+                                            "type": "string",
+                                            "example": "Invalid credentials."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/logout": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Déconnecter l'utilisateur courant",
+                "description": "Invalide le token d'authentification actif (ex: supprime le JWT du côté serveur ou blacklist).",
+                "operationId": "logout",
+                "responses": {
+                    "204": {
+                        "description": "Déconnexion réussie. Aucun contenu retourné."
+                    },
+                    "400": {
+                        "description": "Erreur lors de la déconnexion",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "errors": {
+                                            "type": "string",
+                                            "example": "Failed to logout."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/uploadCandidacies": {
             "post": {
                 "tags": [
@@ -64,7 +173,7 @@
                             "schema": {
                                 "properties": {
                                     "fichier": {
-                                        "description": "The fileS to upload",
+                                        "description": "The files to upload",
                                         "type": "array",
                                         "items": {
                                             "type": "file"
@@ -94,12 +203,89 @@
                     }
                 }
             }
+        },
+        "/api/upload-settings": {
+            "get": {
+                "tags": [
+                    "File Upload"
+                ],
+                "summary": "Get current PHP upload settings",
+                "operationId": "getUploadSettings",
+                "responses": {
+                    "200": {
+                        "description": "Current PHP upload settings",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "upload_max_filesize": {
+                                            "type": "string"
+                                        },
+                                        "post_max_size": {
+                                            "type": "string"
+                                        },
+                                        "max_execution_time": {
+                                            "type": "string"
+                                        },
+                                        "memory_limit": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "UserResource": {
+                "title": "User Resource",
+                "properties": {
+                    "email": {
+                        "type": "email",
+                        "example": "exampple@gmail.com"
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "John Doe"
+                    },
+                    "cuid": {
+                        "type": "string",
+                        "example": "1234556"
+                    },
+                    "role": {
+                        "type": "string",
+                        "example": "admin"
+                    },
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "token": {
+                        "type": "string",
+                        "example": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+                    }
+                },
+                "type": "object"
+            }
         }
     },
     "tags": [
         {
+            "name": "Authentication",
+            "description": "Opérations d'authentification (login/logout)"
+        },
+        {
             "name": "Enregistrement des candidatures",
             "description": "Enregistrement des candidatures"
+        },
+        {
+            "name": "File Upload",
+            "description": "File Upload"
         }
     ]
 }
