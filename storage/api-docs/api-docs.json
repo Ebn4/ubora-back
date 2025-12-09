@@ -1,10 +1,24 @@
 {
     "openapi": "3.0.0",
     "info": {
-        "title": "Documentation Ubora Assessments",
-        "description": "L5 Swagger OpenApi description",
+        "title": "Ubora API Documentation",
+        "description": "Documentation de l'API Ubora Backend",
+        "contact": {
+            "name": "Support Ubora",
+            "email": "support@ubora.com"
+        },
+        "license": {
+            "name": "Proprietary",
+            "url": "https://ubora.com"
+        },
         "version": "1.0.0"
     },
+    "servers": [
+        {
+            "url": "http://my-default-host.com",
+            "description": "Serveur API Ubora"
+        }
+    ],
     "paths": {
         "/api/login": {
             "post": {
@@ -118,7 +132,7 @@
         "/api/uploadCandidacies": {
             "post": {
                 "tags": [
-                    "Enregistrement des candidatures"
+                    "Candidatures"
                 ],
                 "summary": "Enregistrement en batch des données des formulaires",
                 "operationId": "uploadForms",
@@ -161,7 +175,7 @@
         "/api/uploadCandidaciesDocs": {
             "post": {
                 "tags": [
-                    "Enregistrement des candidatures"
+                    "Candidatures"
                 ],
                 "summary": "Enregistrement des fichiers attachés aux formulaires",
                 "operationId": "uploadDocs",
@@ -204,6 +218,658 @@
                 }
             }
         },
+        "/api/rejeted_candidacies": {
+            "get": {
+                "tags": [
+                    "Candidatures"
+                ],
+                "summary": "Lister les candidatures rejetées (non autorisées)",
+                "description": "Récupère la liste paginée des candidatures avec `is_allowed = false`. Filtres identiques à `/candidacies`.",
+                "operationId": "listRejectedCandidacies",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Recherche textuelle (nom, prénom, postnom, ville)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "Lubumbashi"
+                        }
+                    },
+                    {
+                        "name": "ville",
+                        "in": "query",
+                        "description": "Filtrer par ville",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "Kinshasa"
+                        }
+                    },
+                    {
+                        "name": "periodId",
+                        "in": "query",
+                        "description": "ID de la période académique",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 3
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Nombre d'éléments par page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 5,
+                            "example": 10
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste paginée des candidatures rejetées",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/CandidacyResource"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object"
+                                        },
+                                        "meta": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erreur interne du serveur",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "example": 500
+                                        },
+                                        "description": {
+                                            "type": "string",
+                                            "example": "Erreur interne du serveur"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Erreur interne du serveur"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/getDoc": {
+            "get": {
+                "tags": [
+                    "Documents"
+                ],
+                "summary": "Télécharger un document candidat",
+                "description": "Permet de récupérer un fichier PDF/PNG/JPEG stocké (ex: CV, relevé, diplôme). Le fichier est servi en ligne (inline).",
+                "operationId": "getDocument",
+                "parameters": [
+                    {
+                        "name": "docName",
+                        "in": "query",
+                        "description": "Nom exact du fichier (ex: `cv_marcel.pdf`)",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "cv_AB12345.pdf"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Fichier retourné en pièce jointe",
+                        "headers": {
+                            "Content-Type": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "application/pdf"
+                                }
+                            },
+                            "Content-Disposition": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "inline; filename='cv_AB12345.pdf'"
+                                }
+                            }
+                        },
+                        "content": {
+                            "application/pdf": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Requête invalide",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Paramètre docName manquant"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Document non trouvé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Document introuvable"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erreur interne du serveur",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Erreur interne du serveur"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/candidacies": {
+            "delete": {
+                "tags": [
+                    "Candidatures"
+                ],
+                "summary": "Supprimer une candidature (et ses données associées)",
+                "description": "Supprime définitivement une candidature, ses pré-sélections, ses évaluations finales. Action irréversible.",
+                "operationId": "deleteCandidacy",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "candidacyId"
+                                ],
+                                "properties": {
+                                    "candidacyId": {
+                                        "description": "ID de la candidature à supprimer",
+                                        "type": "integer",
+                                        "example": 123
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Candidature supprimée avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "example": 200
+                                        },
+                                        "description": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Candidature supprimée"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non autorisé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Non authentifié"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erreur interne du serveur",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "example": 500
+                                        },
+                                        "description": {
+                                            "type": "string",
+                                            "example": "Erreur"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Erreur interne du serveur"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/candidate/selections": {
+            "post": {
+                "tags": [
+                    "Candidatures"
+                ],
+                "summary": "Soumettre les notes de sélection pour un candidat",
+                "description": "Permet à un évaluateur de saisir les résultats d'entretien (notes par critère) pour une candidature. L'évaluateur doit être assigné à la période en cours.",
+                "operationId": "submitCandidateSelection",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "interviewId",
+                                    "periodId",
+                                    "evaluations"
+                                ],
+                                "properties": {
+                                    "interviewId": {
+                                        "type": "integer",
+                                        "example": 45
+                                    },
+                                    "periodId": {
+                                        "type": "integer",
+                                        "example": 3
+                                    },
+                                    "evaluations": {
+                                        "type": "array",
+                                        "items": {
+                                            "required": [
+                                                "key",
+                                                "value"
+                                            ],
+                                            "properties": {
+                                                "key": {
+                                                    "description": "ID du critère",
+                                                    "type": "integer",
+                                                    "example": 7
+                                                },
+                                                "value": {
+                                                    "description": "Note attribuée (entier)",
+                                                    "type": "integer",
+                                                    "example": 18
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Notes enregistrées avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "boolean",
+                                            "example": true
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Données invalides",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "errors": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Non authentifié"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Action non autorisée (évaluateur non assigné)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "errors": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erreur interne du serveur",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "example": 500
+                                        },
+                                        "description": {
+                                            "type": "string",
+                                            "example": "Erreur"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Erreur interne du serveur"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/candidates/{id}/interviews": {
+            "get": {
+                "tags": [
+                    "Entretiens"
+                ],
+                "summary": "Récupérer l'entretien d'un candidat",
+                "description": "Renvoie les détails de l'entretien associé à une candidature (date, évaluateurs, statut).",
+                "operationId": "getCandidateInterview",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la candidature",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 123
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Entretien trouvé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "candidacy_id": {
+                                            "type": "integer",
+                                            "example": 123
+                                        },
+                                        "date": {
+                                            "type": "string",
+                                            "format": "date-time",
+                                            "example": "2024-01-15T10:30:00Z"
+                                        },
+                                        "status": {
+                                            "type": "string",
+                                            "example": "planned"
+                                        },
+                                        "created_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        },
+                                        "updated_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Entretien non trouvé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Not Found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erreur interne du serveur",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "example": 500
+                                        },
+                                        "description": {
+                                            "type": "string",
+                                            "example": "Erreur"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Erreur interne du serveur"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/candidates/{id}/evaluators": {
+            "get": {
+                "tags": [
+                    "Évaluateurs"
+                ],
+                "summary": "Lister les évaluateurs assignés à un candidat",
+                "description": "Récupère la liste des évaluateurs (évaluateur 1, 2, 3) attribués à une candidature spécifique.",
+                "operationId": "getCandidateEvaluators",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la candidature",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 123
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste des évaluateurs",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "id": {
+                                                "type": "integer",
+                                                "example": 1
+                                            },
+                                            "name": {
+                                                "type": "string",
+                                                "example": "John Doe"
+                                            },
+                                            "email": {
+                                                "type": "string",
+                                                "format": "email",
+                                                "example": "john.doe@example.com"
+                                            },
+                                            "role": {
+                                                "type": "string",
+                                                "example": "evaluator"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erreur interne du serveur",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "example": 500
+                                        },
+                                        "description": {
+                                            "type": "string",
+                                            "example": "Erreur"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Erreur interne du serveur"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/upload-settings": {
             "get": {
                 "tags": [
@@ -238,10 +904,1115 @@
                     }
                 }
             }
+        },
+        "/api/periods": {
+            "get": {
+                "tags": [
+                    "Périodes"
+                ],
+                "summary": "Lister les périodes académiques",
+                "description": "Récupère la liste paginée des périodes académiques avec possibilité de recherche et filtrage.",
+                "operationId": "listPeriods",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Recherche par année",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "2024"
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "Filtrer par statut",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "dispatch"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Nombre d'éléments par page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 5,
+                            "example": 10
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste paginée des périodes",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/PeriodResource"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object"
+                                        },
+                                        "meta": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erreur interne du serveur",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Une erreur est survenue."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Périodes"
+                ],
+                "summary": "Créer une nouvelle période académique",
+                "description": "Crée une nouvelle période académique. Si aucune année n'est spécifiée, utilise l'année courante.",
+                "operationId": "createPeriod",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [],
+                                "properties": {
+                                    "year": {
+                                        "description": "Année de début de la période (optionnel)",
+                                        "type": "integer",
+                                        "example": 2025
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Période créée avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/PeriodResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation échouée",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erreur interne du serveur",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Une erreur est survenue lors de la création de la période."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/getYearsPeriod": {
+            "get": {
+                "tags": [
+                    "Périodes"
+                ],
+                "summary": "Obtenir la liste des années avec périodes",
+                "description": "Récupère toutes les périodes au format 'année1-année2' pour les sélecteurs/dropdowns.",
+                "operationId": "getYearsPeriod",
+                "responses": {
+                    "200": {
+                        "description": "Liste des années avec périodes",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "id": {
+                                                "type": "integer",
+                                                "example": 3
+                                            },
+                                            "year": {
+                                                "type": "string",
+                                                "example": "2024-2025"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/periods/{id}": {
+            "get": {
+                "tags": [
+                    "Périodes"
+                ],
+                "summary": "Obtenir les détails d'une période",
+                "description": "Récupère les informations détaillées d'une période académique spécifique.",
+                "operationId": "getPeriod",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la période",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 3
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Détails de la période",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PeriodResource"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Période non trouvée",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Période non trouvée."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erreur interne du serveur",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Une erreur est survenue."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/periods/{period}/status": {
+            "put": {
+                "tags": [
+                    "Périodes"
+                ],
+                "summary": "Changer le statut d'une période",
+                "description": "Met à jour le statut d'une période académique selon le workflow prédéfini (dispatch → présélection → sélection → close).",
+                "operationId": "changePeriodStatus",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la période",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 3
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "status"
+                                ],
+                                "properties": {
+                                    "status": {
+                                        "description": "Nouveau statut",
+                                        "type": "string",
+                                        "enum": [
+                                            "dispatch",
+                                            "preselection",
+                                            "selection",
+                                            "close"
+                                        ],
+                                        "example": "preselection"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Statut mis à jour avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Statut mis à jour avec succès."
+                                        },
+                                        "period": {
+                                            "$ref": "#/components/schemas/PeriodResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Modification non autorisée",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Modification non autorisée pour ce statut."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Période non trouvée"
+                    },
+                    "422": {
+                        "description": "Validation échouée"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/periods/criteria/{id}": {
+            "get": {
+                "tags": [
+                    "Périodes"
+                ],
+                "summary": "Obtenir les critères d'évaluation d'une période",
+                "description": "Récupère les critères d'évaluation associés à une période, filtrés par type (présélection ou sélection).",
+                "operationId": "getPeriodCriteria",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la période",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 3
+                        }
+                    },
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "description": "Type d'évaluation",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "PRESELECTION",
+                            "enum": [
+                                "PRESELECTION",
+                                "SELECTION"
+                            ],
+                            "example": "SELECTION"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste des critères",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/CriteriaResource"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Période non trouvée"
+                    },
+                    "500": {
+                        "description": "Erreur interne du serveur",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "example": 500
+                                        },
+                                        "description": {
+                                            "type": "string",
+                                            "example": "Erreur interne du serveur"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Erreur interne du serveur"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/periods/{periodId}/has-evaluators": {
+            "get": {
+                "tags": [
+                    "Périodes"
+                ],
+                "summary": "Vérifier si une période a des évaluateurs",
+                "description": "Vérifie si au moins un évaluateur est assigné à la période spécifiée.",
+                "operationId": "hasEvaluators",
+                "parameters": [
+                    {
+                        "name": "periodId",
+                        "in": "path",
+                        "description": "ID de la période",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 3
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "État des évaluateurs",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "hasEvaluators": {
+                                            "type": "boolean",
+                                            "example": true
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/users": {
+            "get": {
+                "tags": [
+                    "Utilisateurs"
+                ],
+                "summary": "Lister les utilisateurs",
+                "description": "Récupère la liste paginée des utilisateurs avec possibilité de recherche et filtrage par rôle.",
+                "operationId": "listUsers",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Recherche textuelle (nom ou email)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "john"
+                        }
+                    },
+                    {
+                        "name": "role",
+                        "in": "query",
+                        "description": "Filtrer par rôle",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "admin"
+                        }
+                    },
+                    {
+                        "name": "perPage",
+                        "in": "query",
+                        "description": "Nombre d'éléments par page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 10,
+                            "example": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste paginée des utilisateurs",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/UserResource"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object"
+                                        },
+                                        "meta": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Non authentifié"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Non autorisé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Accès interdit"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/user": {
+            "get": {
+                "tags": [
+                    "Utilisateurs"
+                ],
+                "summary": "Obtenir le profil de l'utilisateur courant",
+                "description": "Récupère les informations de l'utilisateur actuellement authentifié.",
+                "operationId": "getCurrentUser",
+                "responses": {
+                    "200": {
+                        "description": "Profil utilisateur",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserResource"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Non authentifié"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/users/{id}": {
+            "delete": {
+                "tags": [
+                    "Utilisateurs"
+                ],
+                "summary": "Supprimer un utilisateur",
+                "description": "Supprime définitivement un utilisateur du système.",
+                "operationId": "deleteUser",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de l'utilisateur à supprimer",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Utilisateur supprimé avec succès (pas de contenu)"
+                    },
+                    "401": {
+                        "description": "Non authentifié",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Non authentifié"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Non autorisé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Accès interdit"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Utilisateur non trouvé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Utilisateur non trouvé"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
         "schemas": {
+            "CandidacyResource": {
+                "title": "Candidacy Resource",
+                "description": "Ressource de candidature formatée",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "post_work_id": {
+                        "type": "integer",
+                        "example": 5,
+                        "nullable": true
+                    },
+                    "form_id": {
+                        "type": "integer",
+                        "example": 10,
+                        "nullable": true
+                    },
+                    "form_submited_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "etn_nom": {
+                        "type": "string",
+                        "example": "Doe"
+                    },
+                    "etn_email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "john.doe@example.com"
+                    },
+                    "etn_prenom": {
+                        "type": "string",
+                        "example": "John"
+                    },
+                    "etn_postnom": {
+                        "type": "string",
+                        "example": "Smith"
+                    },
+                    "etn_naissance": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "1990-01-01"
+                    },
+                    "ville": {
+                        "type": "string",
+                        "example": "Kinshasa"
+                    },
+                    "telephone": {
+                        "type": "string",
+                        "example": "+243812345678"
+                    },
+                    "adresse": {
+                        "type": "string",
+                        "example": "123 Avenue de la Paix"
+                    },
+                    "province": {
+                        "type": "string",
+                        "example": "Kinshasa"
+                    },
+                    "nationalite": {
+                        "type": "string",
+                        "example": "Congolaise"
+                    },
+                    "cv": {
+                        "type": "string",
+                        "example": "uploads/cv/document.pdf",
+                        "nullable": true
+                    },
+                    "releve_note_derniere_annee": {
+                        "type": "string",
+                        "example": "uploads/notes/releve.pdf",
+                        "nullable": true
+                    },
+                    "en_soumettant": {
+                        "type": "string",
+                        "example": "Oui",
+                        "nullable": true
+                    },
+                    "section_option": {
+                        "type": "string",
+                        "example": "Informatique",
+                        "nullable": true
+                    },
+                    "j_atteste": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "degre_parente_agent_orange": {
+                        "type": "string",
+                        "example": "Aucun",
+                        "nullable": true
+                    },
+                    "annee_diplome_detat": {
+                        "type": "string",
+                        "example": "2010"
+                    },
+                    "diplome_detat": {
+                        "type": "string",
+                        "example": "Diplôme d'État"
+                    },
+                    "autres_diplomes_atttestation": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "universite_institut_sup": {
+                        "type": "string",
+                        "example": "Université de Kinshasa"
+                    },
+                    "pourcentage_obtenu": {
+                        "type": "string",
+                        "example": "75%"
+                    },
+                    "lettre_motivation": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "adresse_universite": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "parente_agent_orange": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "institution_scolaire": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "montant_frais": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "sexe": {
+                        "type": "string",
+                        "example": "Masculin"
+                    },
+                    "attestation_de_reussite_derniere_annee": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "user_last_login": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "faculte": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "period_id": {
+                        "type": "integer",
+                        "example": 3
+                    },
+                    "period_year": {
+                        "type": "string",
+                        "example": "2023-2024"
+                    },
+                    "period_status": {
+                        "type": "string",
+                        "example": "active"
+                    },
+                    "evaluators": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    },
+                    "evalutors_number": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "nb_evaluation": {
+                        "type": "integer",
+                        "example": 3
+                    },
+                    "institute_count": {
+                        "type": "integer",
+                        "example": 15
+                    },
+                    "candidacy_count": {
+                        "type": "integer",
+                        "example": 250
+                    },
+                    "city_count": {
+                        "type": "integer",
+                        "example": 10
+                    },
+                    "preselection_count": {
+                        "type": "integer",
+                        "example": 50
+                    },
+                    "selection_count": {
+                        "type": "integer",
+                        "example": 20
+                    },
+                    "candidacy_preselection": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "hasSelected": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "selectionMean": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 85.5
+                    }
+                },
+                "type": "object"
+            },
+            "CriteriaResource": {
+                "title": "Criteria Resource",
+                "description": "Ressource de critère d'évaluation formatée",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 7
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Compétences techniques"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "Évaluation des compétences techniques spécifiques"
+                    },
+                    "ponderation": {
+                        "type": "integer",
+                        "example": 25
+                    }
+                },
+                "type": "object"
+            },
+            "EvaluatorResource": {
+                "title": "Evaluator Resource",
+                "description": "Ressource d'évaluateur formatée",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "John Doe"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "john.doe@example.com"
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "preselection",
+                            "selection"
+                        ],
+                        "example": "preselection"
+                    },
+                    "period": {
+                        "type": "string",
+                        "example": "2024-2025"
+                    }
+                },
+                "type": "object"
+            },
+            "InterviewResource": {
+                "title": "Interview Resource",
+                "description": "Ressource d'entretien formatée",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "candidateId": {
+                        "type": "integer",
+                        "example": 123
+                    }
+                },
+                "type": "object"
+            },
+            "PeriodResource": {
+                "title": "Period Resource",
+                "description": "Ressource de période académique formatée",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 3
+                    },
+                    "year": {
+                        "type": "string",
+                        "example": "2024-2025"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "dispatch",
+                            "preselection",
+                            "selection",
+                            "close"
+                        ],
+                        "example": "dispatch"
+                    },
+                    "evaluators_count": {
+                        "type": "integer",
+                        "example": 15
+                    },
+                    "criteria_count": {
+                        "type": "integer",
+                        "example": 8
+                    },
+                    "candidats_count": {
+                        "type": "integer",
+                        "example": 250
+                    },
+                    "preselection_count": {
+                        "type": "integer",
+                        "example": 180
+                    },
+                    "selection_count": {
+                        "type": "integer",
+                        "example": 0
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-07-11T10:42:29.000000Z"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-07-11T10:42:29.000000Z"
+                    },
+                    "progression_preselection": {
+                        "type": "string",
+                        "example": "72%"
+                    }
+                },
+                "type": "object"
+            },
             "UserResource": {
                 "title": "User Resource",
                 "properties": {
@@ -272,6 +2043,14 @@
                 },
                 "type": "object"
             }
+        },
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "description": "Utilisez le token JWT obtenu lors de l'authentification",
+                "bearerFormat": "JWT",
+                "scheme": "bearer"
+            }
         }
     },
     "tags": [
@@ -280,12 +2059,32 @@
             "description": "Opérations d'authentification (login/logout)"
         },
         {
-            "name": "Enregistrement des candidatures",
-            "description": "Enregistrement des candidatures"
+            "name": "Candidatures",
+            "description": "Candidatures"
+        },
+        {
+            "name": "Documents",
+            "description": "Documents"
+        },
+        {
+            "name": "Entretiens",
+            "description": "Entretiens"
+        },
+        {
+            "name": "Évaluateurs",
+            "description": "Évaluateurs"
         },
         {
             "name": "File Upload",
             "description": "File Upload"
+        },
+        {
+            "name": "Périodes",
+            "description": "Périodes"
+        },
+        {
+            "name": "Utilisateurs",
+            "description": "Utilisateurs"
         }
     ]
 }

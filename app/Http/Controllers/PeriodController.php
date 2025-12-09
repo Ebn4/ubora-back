@@ -16,6 +16,54 @@ use Illuminate\Http\JsonResponse;
 
 class PeriodController extends Controller
 {
+       /**
+     * @OA\Get(
+     *     path="/api/periods",
+     *     tags={"Périodes"},
+     *     summary="Lister les périodes académiques",
+     *     description="Récupère la liste paginée des périodes académiques avec possibilité de recherche et filtrage.",
+     *     operationId="listPeriods",
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="search",
+     *         in="query",
+     *         description="Recherche par année",
+     *         required=false,
+     *         @OA\Schema(type="string", example="2024")
+     *     ),
+     *     @OA\Parameter(
+     *         name="status",
+     *         in="query",
+     *         description="Filtrer par statut",
+     *         required=false,
+     *         @OA\Schema(type="string", example="dispatch")
+     *     ),
+     *     @OA\Parameter(
+     *         name="per_page",
+     *         in="query",
+     *         description="Nombre d'éléments par page",
+     *         required=false,
+     *         @OA\Schema(type="integer", default=5, example=10)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Liste paginée des périodes",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/PeriodResource")),
+     *             @OA\Property(property="links", type="object"),
+     *             @OA\Property(property="meta", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur interne du serveur",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Une erreur est survenue.")
+     *         )
+     *     )
+     * )
+     */
     public function index(Request $request)
     {
         $query = Period::orderBy('year', 'desc');
@@ -36,6 +84,28 @@ class PeriodController extends Controller
         return PeriodResource::collection($paginated);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/getYearsPeriod",
+     *     tags={"Périodes"},
+     *     summary="Obtenir la liste des années avec périodes",
+     *     description="Récupère toutes les périodes au format 'année1-année2' pour les sélecteurs/dropdowns.",
+     *     operationId="getYearsPeriod",
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Liste des années avec périodes",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(
+     *                 type="object",
+     *                 @OA\Property(property="id", type="integer", example=3),
+     *                 @OA\Property(property="year", type="string", example="2024-2025")
+     *             )
+     *         )
+     *     )
+     * )
+     */
     public function getYearsPeriod()
     {
         $query = Period::orderBy('year', 'desc')->get(['id', 'year']);
@@ -52,6 +122,47 @@ class PeriodController extends Controller
         return response()->json($yearsWithPeriods);
     }
 
+
+    /**
+     * @OA\Post(
+     *     path="/api/periods",
+     *     tags={"Périodes"},
+     *     summary="Créer une nouvelle période académique",
+     *     description="Crée une nouvelle période académique. Si aucune année n'est spécifiée, utilise l'année courante.",
+     *     operationId="createPeriod",
+     *     security={{"bearerAuth": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={},
+     *             @OA\Property(property="year", type="integer", example=2025, description="Année de début de la période (optionnel)")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Période créée avec succès",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="data", type="object", ref="#/components/schemas/PeriodResource")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation échouée",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The given data was invalid.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur interne du serveur",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Une erreur est survenue lors de la création de la période.")
+     *         )
+     *     )
+     * )
+     */
     public function store(Request $request): JsonResponse
     {
         $user_id = $request->user()->id;
@@ -89,6 +200,44 @@ class PeriodController extends Controller
         }
     }
 
+     /**
+     * @OA\Get(
+     *     path="/api/periods/{id}",
+     *     tags={"Périodes"},
+     *     summary="Obtenir les détails d'une période",
+     *     description="Récupère les informations détaillées d'une période académique spécifique.",
+     *     operationId="getPeriod",
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         description="ID de la période",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=3)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Détails de la période",
+     *         @OA\JsonContent(ref="#/components/schemas/PeriodResource")
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Période non trouvée",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Période non trouvée.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur interne du serveur",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Une erreur est survenue.")
+     *         )
+     *     )
+     * )
+     */
     public function show(int $id)
     {
         try {
@@ -108,7 +257,59 @@ class PeriodController extends Controller
         }
     }
 
-
+      /**
+     * @OA\Put(
+     *     path="/api/periods/{period}/status",
+     *     tags={"Périodes"},
+     *     summary="Changer le statut d'une période",
+     *     description="Met à jour le statut d'une période académique selon le workflow prédéfini (dispatch → présélection → sélection → close).",
+     *     operationId="changePeriodStatus",
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         description="ID de la période",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=3)
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"status"},
+     *             @OA\Property(
+     *                 property="status",
+     *                 type="string",
+     *                 example="preselection",
+     *                 description="Nouveau statut",
+     *                 enum={"dispatch", "preselection", "selection", "close"}
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Statut mis à jour avec succès",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Statut mis à jour avec succès."),
+     *             @OA\Property(property="period", ref="#/components/schemas/PeriodResource")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Modification non autorisée",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Modification non autorisée pour ce statut.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Période non trouvée"
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation échouée"
+     *     )
+     * )
+     */
     public function changePeriodStatus(ChangePeriodStatusRequest $request, int $id): JsonResponse
     {
         $period = Period::findOrFail($id);
@@ -135,6 +336,57 @@ class PeriodController extends Controller
         return response()->json(['message' => 'Modification non autorisée pour ce statut.'], 403);
     }
 
+
+    /**
+     * @OA\Get(
+     *     path="/api/periods/criteria/{id}",
+     *     tags={"Périodes"},
+     *     summary="Obtenir les critères d'évaluation d'une période",
+     *     description="Récupère les critères d'évaluation associés à une période, filtrés par type (présélection ou sélection).",
+     *     operationId="getPeriodCriteria",
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         description="ID de la période",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=3)
+     *     ),
+     *     @OA\Parameter(
+     *         name="type",
+     *         in="query",
+     *         description="Type d'évaluation",
+     *         required=false,
+     *         @OA\Schema(
+     *             type="string",
+     *             enum={"PRESELECTION", "SELECTION"},
+     *             default="PRESELECTION",
+     *             example="SELECTION"
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Liste des critères",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(ref="#/components/schemas/CriteriaResource")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Période non trouvée"
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur interne du serveur",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="code", type="integer", example=500),
+     *             @OA\Property(property="description", type="string", example="Erreur interne du serveur"),
+     *             @OA\Property(property="message", type="string", example="Erreur interne du serveur")
+     *         )
+     *     )
+     * )
+     */
     public function getCriteriaPeriod(Request $request, int $id)
     {
         try {
@@ -160,6 +412,30 @@ class PeriodController extends Controller
         }
     }
 
+      /**
+     * @OA\Get(
+     *     path="/api/periods/{periodId}/has-evaluators",
+     *     tags={"Périodes"},
+     *     summary="Vérifier si une période a des évaluateurs",
+     *     description="Vérifie si au moins un évaluateur est assigné à la période spécifiée.",
+     *     operationId="hasEvaluators",
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="periodId",
+     *         in="path",
+     *         description="ID de la période",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=3)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="État des évaluateurs",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="hasEvaluators", type="boolean", example=true)
+     *         )
+     *     )
+     * )
+     */
     public function hasEvaluators(int $periodId): JsonResponse
     {
         $evaluators = Evaluator::query()->where('period_id', $periodId)->exists();

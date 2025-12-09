@@ -34,7 +34,7 @@ class CandidacyController extends Controller
      *     path="/api/uploadCandidacies",
      *     summary="Enregistrement en batch des données des formulaires",
      *     operationId="uploadForms",
-     *     tags={"Enregistrement des candidatures"},
+     *     tags={"Candidatures"},
      *     @OA\RequestBody(
      *         description="Cette interface d'API permet l'enregistrement en batch des données issues des formulaires, collectées dans un fichier CSV.",
      *         required=true,
@@ -208,7 +208,7 @@ class CandidacyController extends Controller
      *     path="/api/uploadCandidaciesDocs",
      *     summary="Enregistrement des fichiers attachés aux formulaires",
      *     operationId="uploadDocs",
-     *     tags={"Enregistrement des candidatures"},
+     *     tags={"Candidatures"},
      *     @OA\RequestBody(
      *         description="Cette interface d'API est conçue pour l'enregistrement des fichiers attachés aux formulaires.",
      *         required=true,
@@ -320,6 +320,63 @@ class CandidacyController extends Controller
         }
     }
 
+
+    /**
+     * @OA\Get(
+     *     path="/api/rejeted_candidacies",
+     *     tags={"Candidatures"},
+     *     summary="Lister les candidatures rejetées (non autorisées)",
+     *     description="Récupère la liste paginée des candidatures avec `is_allowed = false`. Filtres identiques à `/candidacies`.",
+     *     operationId="listRejectedCandidacies",
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="search",
+     *         in="query",
+     *         description="Recherche textuelle (nom, prénom, postnom, ville)",
+     *         required=false,
+     *         @OA\Schema(type="string", example="Lubumbashi")
+     *     ),
+     *     @OA\Parameter(
+     *         name="ville",
+     *         in="query",
+     *         description="Filtrer par ville",
+     *         required=false,
+     *         @OA\Schema(type="string", example="Kinshasa")
+     *     ),
+     *     @OA\Parameter(
+     *         name="periodId",
+     *         in="query",
+     *         description="ID de la période académique",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=3)
+     *     ),
+     *     @OA\Parameter(
+     *         name="per_page",
+     *         in="query",
+     *         description="Nombre d'éléments par page",
+     *         required=false,
+     *         @OA\Schema(type="integer", default=5, example=10)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Liste paginée des candidatures rejetées",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/CandidacyResource")),
+     *             @OA\Property(property="links", type="object"),
+     *             @OA\Property(property="meta", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur interne du serveur",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="code", type="integer", example=500),
+     *             @OA\Property(property="description", type="string", example="Erreur interne du serveur"),
+     *             @OA\Property(property="message", type="string", example="Erreur interne du serveur")
+     *         )
+     *     )
+     * )
+     */
     public function rejetedCandidacies(Request $request)
     {
         try {
@@ -372,6 +429,65 @@ class CandidacyController extends Controller
         return new CandidacyResource($candidacy, $evaluator_id);
     }
 
+
+    /**
+     * @OA\Get(
+     *     path="/api/getDoc",
+     *     tags={"Documents"},
+     *     summary="Télécharger un document candidat",
+     *     description="Permet de récupérer un fichier PDF/PNG/JPEG stocké (ex: CV, relevé, diplôme). Le fichier est servi en ligne (inline).",
+     *     operationId="getDocument",
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="docName",
+     *         in="query",
+     *         description="Nom exact du fichier (ex: `cv_marcel.pdf`)",
+     *         required=true,
+     *         @OA\Schema(type="string", example="cv_AB12345.pdf")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Fichier retourné en pièce jointe",
+     *         content={
+     *             @OA\MediaType(
+     *                 mediaType="application/pdf",
+     *                 @OA\Schema(type="string", format="binary")
+     *             )
+     *         },
+     *         headers={
+     *             @OA\Header(
+     *                 header="Content-Type",
+     *                 @OA\Schema(type="string", example="application/pdf")
+     *             ),
+     *             @OA\Header(
+     *                 header="Content-Disposition",
+     *                 @OA\Schema(type="string", example="inline; filename='cv_AB12345.pdf'")
+     *             )
+     *         }
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Requête invalide",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Paramètre docName manquant")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Document non trouvé",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Document introuvable")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur interne du serveur",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Erreur interne du serveur")
+     *         )
+     *     )
+     * )
+     */
     public function getDoc(Request $request)
     {
         try {
@@ -481,6 +597,49 @@ class CandidacyController extends Controller
         return $candidacies;
     }
 
+
+   /**
+     * @OA\Delete(
+     *     path="/api/candidacies",
+     *     tags={"Candidatures"},
+     *     summary="Supprimer une candidature (et ses données associées)",
+     *     description="Supprime définitivement une candidature, ses pré-sélections, ses évaluations finales. Action irréversible.",
+     *     operationId="deleteCandidacy",
+     *     security={{"bearerAuth": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"candidacyId"},
+     *             @OA\Property(property="candidacyId", type="integer", example=123, description="ID de la candidature à supprimer")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Candidature supprimée avec succès",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="code", type="integer", example=200),
+     *             @OA\Property(property="description", type="string", example="Success"),
+     *             @OA\Property(property="message", type="string", example="Candidature supprimée")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Non autorisé",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Non authentifié")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur interne du serveur",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="code", type="integer", example=500),
+     *             @OA\Property(property="description", type="string", example="Erreur"),
+     *             @OA\Property(property="message", type="string", example="Erreur interne du serveur")
+     *         )
+     *     )
+     * )
+     */
     public function destroy(Request $r)
     {
         try {
@@ -512,6 +671,64 @@ class CandidacyController extends Controller
         }
     }
 
+
+    /**
+     * @OA\Post(
+     *     path="/api/candidate/selections",
+     *     tags={"Candidatures"},
+     *     summary="Soumettre les notes de sélection pour un candidat",
+     *     description="Permet à un évaluateur de saisir les résultats d'entretien (notes par critère) pour une candidature. L'évaluateur doit être assigné à la période en cours.",
+     *     operationId="submitCandidateSelection",
+     *     security={{"bearerAuth": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"interviewId", "periodId", "evaluations"},
+     *             @OA\Property(property="interviewId", type="integer", example=45),
+     *             @OA\Property(property="periodId", type="integer", example=3),
+     *             @OA\Property(
+     *                 property="evaluations",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     required={"key", "value"},
+     *                     @OA\Property(property="key", type="integer", description="ID du critère", example=7),
+     *                     @OA\Property(property="value", type="integer", description="Note attribuée (entier)", example=18)
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Notes enregistrées avec succès",
+     *         @OA\JsonContent(@OA\Property(property="data", type="boolean", example=true))
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Données invalides",
+     *         @OA\JsonContent(@OA\Property(property="errors", type="string"))
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Non authentifié",
+     *         @OA\JsonContent(@OA\Property(property="message", type="string", example="Non authentifié"))
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Action non autorisée (évaluateur non assigné)",
+     *         @OA\JsonContent(@OA\Property(property="errors", type="string"))
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur interne du serveur",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="code", type="integer", example=500),
+     *             @OA\Property(property="description", type="string", example="Erreur"),
+     *             @OA\Property(property="message", type="string", example="Erreur interne du serveur")
+     *         )
+     *     )
+     * )
+     */
     public function candidateSelections(CandidateSelectionRequest $request)
     {
 
@@ -564,6 +781,49 @@ class CandidacyController extends Controller
         }
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/candidates/{id}/interviews",
+     *     tags={"Entretiens"},
+     *     summary="Récupérer l'entretien d'un candidat",
+     *     description="Renvoie les détails de l'entretien associé à une candidature (date, évaluateurs, statut).",
+     *     operationId="getCandidateInterview",
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         description="ID de la candidature",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=123)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Entretien trouvé",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="id", type="integer", example=1),
+     *             @OA\Property(property="candidacy_id", type="integer", example=123),
+     *             @OA\Property(property="date", type="string", format="date-time", example="2024-01-15T10:30:00Z"),
+     *             @OA\Property(property="status", type="string", example="planned"),
+     *             @OA\Property(property="created_at", type="string", format="date-time"),
+     *             @OA\Property(property="updated_at", type="string", format="date-time")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Entretien non trouvé",
+     *         @OA\JsonContent(@OA\Property(property="message", type="string", example="Not Found"))
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur interne du serveur",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="code", type="integer", example=500),
+     *             @OA\Property(property="description", type="string", example="Erreur"),
+     *             @OA\Property(property="message", type="string", example="Erreur interne du serveur")
+     *         )
+     *     )
+     * )
+     */
     public function getCandidateInterview(int $id): InterviewResource
     {
         $interview = Interview::query()
@@ -586,6 +846,46 @@ class CandidacyController extends Controller
             ]);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/candidates/{id}/evaluators",
+     *     tags={"Évaluateurs"},
+     *     summary="Lister les évaluateurs assignés à un candidat",
+     *     description="Récupère la liste des évaluateurs (évaluateur 1, 2, 3) attribués à une candidature spécifique.",
+     *     operationId="getCandidateEvaluators",
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         description="ID de la candidature",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=123)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Liste des évaluateurs",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(
+     *                 type="object",
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="name", type="string", example="John Doe"),
+     *                 @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
+     *                 @OA\Property(property="role", type="string", example="evaluator")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur interne du serveur",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="code", type="integer", example=500),
+     *             @OA\Property(property="description", type="string", example="Erreur"),
+     *             @OA\Property(property="message", type="string", example="Erreur interne du serveur")
+     *         )
+     *     )
+     * )
+     */
     public function getCandidateEvaluators(int $id): AnonymousResourceCollection
     {
         $evaluators = Evaluator::query()
