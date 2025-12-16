@@ -127,6 +127,7 @@ class CandidacyResource extends JsonResource
             "pourcentage_obtenu" => $this->pourcentage_obtenu,
             "lettre_motivation" => $this->lettre_motivation,
             "adresse_universite" => $this->adresse_universite,
+            "promotion_academique" => $this->promotion_academique,
             "parente_agent_orange" => $this->parente_agent_orange,
             "institution_scolaire" => $this->institution_scolaire,
             "montant_frais" => $this->montant_frais,
