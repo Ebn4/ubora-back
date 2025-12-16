@@ -8,23 +8,35 @@ use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Routing\Controller as BaseController;
 
 
+
 /**
-     * @OA\Info(
-     *      version="1.0.0",
-     *      title="Documentation Ubora Assessments",
-     *      description="L5 Swagger OpenApi description",
-     *
-     * )
-     *
-     *
-
-     *
-     * @OA\Tag(
-     *     name="Ubora Assessments backend",
-     *     description="API Endpoints of Ubora Assessments backend"
-     * )
-     */
-
+ * @OA\Info(
+ *     title="Ubora API Documentation",
+ *     version="1.0.0",
+ *     description="Documentation de l'API Ubora Backend",
+ *     @OA\Contact(
+ *         email="support@ubora.com",
+ *         name="Support Ubora"
+ *     ),
+ *     @OA\License(
+ *         name="Proprietary",
+ *         url="https://ubora.com"
+ *     )
+ * )
+ *
+ * @OA\Server(
+ *     url=L5_SWAGGER_CONST_HOST,
+ *     description="Serveur API Ubora"
+ * )
+ *
+ * @OA\SecurityScheme(
+ *     securityScheme="bearerAuth",
+ *     type="http",
+ *     scheme="bearer",
+ *     bearerFormat="JWT",
+ *     description="Utilisez le token JWT obtenu lors de l'authentification"
+ * )
+ */
 class Controller extends BaseController
 {
     use AuthorizesRequests, DispatchesJobs, ValidatesRequests;

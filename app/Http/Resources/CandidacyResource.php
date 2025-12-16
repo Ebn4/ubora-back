@@ -9,6 +9,69 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+
+/**
+ * @OA\Schema(
+ *     schema="CandidacyResource",
+ *     type="object",
+ *     title="Candidacy Resource",
+ *     description="Ressource de candidature formatée",
+ *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="post_work_id", type="integer", nullable=true, example=5),
+ *     @OA\Property(property="form_id", type="integer", nullable=true, example=10),
+ *     @OA\Property(property="form_submited_at", type="string", format="date-time", nullable=true),
+ *     @OA\Property(property="etn_nom", type="string", example="Doe"),
+ *     @OA\Property(property="etn_email", type="string", format="email", example="john.doe@example.com"),
+ *     @OA\Property(property="etn_prenom", type="string", example="John"),
+ *     @OA\Property(property="etn_postnom", type="string", example="Smith"),
+ *     @OA\Property(property="etn_naissance", type="string", format="date", example="1990-01-01"),
+ *     @OA\Property(property="ville", type="string", example="Kinshasa"),
+ *     @OA\Property(property="telephone", type="string", example="+243812345678"),
+ *     @OA\Property(property="adresse", type="string", example="123 Avenue de la Paix"),
+ *     @OA\Property(property="province", type="string", example="Kinshasa"),
+ *     @OA\Property(property="nationalite", type="string", example="Congolaise"),
+ *     @OA\Property(property="cv", type="string", nullable=true, example="uploads/cv/document.pdf"),
+ *     @OA\Property(property="releve_note_derniere_annee", type="string", nullable=true, example="uploads/notes/releve.pdf"),
+ *     @OA\Property(property="en_soumettant", type="string", nullable=true, example="Oui"),
+ *     @OA\Property(property="section_option", type="string", nullable=true, example="Informatique"),
+ *     @OA\Property(property="j_atteste", type="boolean", example=true),
+ *     @OA\Property(property="degre_parente_agent_orange", type="string", nullable=true, example="Aucun"),
+ *     @OA\Property(property="annee_diplome_detat", type="string", example="2010"),
+ *     @OA\Property(property="diplome_detat", type="string", example="Diplôme d'État"),
+ *     @OA\Property(property="autres_diplomes_atttestation", type="string", nullable=true),
+ *     @OA\Property(property="universite_institut_sup", type="string", example="Université de Kinshasa"),
+ *     @OA\Property(property="pourcentage_obtenu", type="string", example="75%"),
+ *     @OA\Property(property="lettre_motivation", type="string", nullable=true),
+ *     @OA\Property(property="adresse_universite", type="string", nullable=true),
+ *     @OA\Property(property="parente_agent_orange", type="string", nullable=true),
+ *     @OA\Property(property="institution_scolaire", type="string", nullable=true),
+ *     @OA\Property(property="montant_frais", type="string", nullable=true),
+ *     @OA\Property(property="sexe", type="string", example="Masculin"),
+ *     @OA\Property(property="attestation_de_reussite_derniere_annee", type="string", nullable=true),
+ *     @OA\Property(property="user_last_login", type="string", format="date-time", nullable=true),
+ *     @OA\Property(property="faculte", type="string", nullable=true),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time"),
+ *     @OA\Property(property="period_id", type="integer", example=3),
+ *     @OA\Property(property="period_year", type="string", example="2023-2024"),
+ *     @OA\Property(property="period_status", type="string", example="active"),
+ *     @OA\Property(
+ *         property="evaluators",
+ *         type="array",
+ *         @OA\Items(type="object")
+ *     ),
+ *     @OA\Property(property="evalutors_number", type="integer", example=2),
+ *     @OA\Property(property="nb_evaluation", type="integer", example=3),
+ *     @OA\Property(property="institute_count", type="integer", example=15),
+ *     @OA\Property(property="candidacy_count", type="integer", example=250),
+ *     @OA\Property(property="city_count", type="integer", example=10),
+ *     @OA\Property(property="preselection_count", type="integer", example=50),
+ *     @OA\Property(property="selection_count", type="integer", example=20),
+ *     @OA\Property(property="candidacy_preselection", type="boolean", example=true),
+ *     @OA\Property(property="hasSelected", type="boolean", example=false),
+ *     @OA\Property(property="selectionMean", type="number", format="float", example=85.5)
+ * )
+ */
 class CandidacyResource extends JsonResource
 {
 
@@ -64,6 +127,7 @@ class CandidacyResource extends JsonResource
             "pourcentage_obtenu" => $this->pourcentage_obtenu,
             "lettre_motivation" => $this->lettre_motivation,
             "adresse_universite" => $this->adresse_universite,
+            "promotion_academique" => $this->promotion_academique,
             "parente_agent_orange" => $this->parente_agent_orange,
             "institution_scolaire" => $this->institution_scolaire,
             "montant_frais" => $this->montant_frais,
