@@ -26,6 +26,7 @@ class Candidacy extends Model
         'etn_email',
         'etn_prenom',
         'etn_postnom',
+        'etn_naissance',
         'ville',
         'telephone',
         'adresse',
