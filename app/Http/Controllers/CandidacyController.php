@@ -142,10 +142,10 @@ class CandidacyController extends Controller
 
                 // Liste des promotions du 1er cycle
                 $cycle1Promotions = [
-                    'L1', 'L2', 'L3',
+                    'L0','L1', 'L2', 'L3',
                     'G1', 'G2', 'G3',
-                    'B1', 'B2', 'B3','Diplome',
-                    'PREPARATOIRE', 'PREPA',
+                    'B1', 'B2', 'B3','Diplome','Diplomé',
+                    'PREPARATOIRE', 'PREPA','Préparatoir', 'Préparatoir',
                     'BAC+1', 'BAC+2', 'BAC+3',
                     '1ERE ANNEE', '1ÈRE ANNÉE',
                     '2EME ANNEE', '2ÈME ANNÉE',
@@ -284,17 +284,46 @@ class CandidacyController extends Controller
                     }
 
                     // ============ VÉRIFICATIONS DE POURCENTAGE ============
-                    if ($cycle == 1 && $pourcentage < 75) {
-                        $is_allowed = false;
-                        $rejection_reasons[] = "Pourcentage < 75% (1er cycle)";
-                        Log::info("Ligne $index - Rejet: Pourcentage $pourcentage% < 75% (1er cycle)");
+                    $promotionUpper = strtoupper(trim($promotion));
+
+                    if ($cycle == 1) {
+
+                        // Nouveaux entrants : L1 / B1 / Préparatoire → Exetat ≥ 75 %
+                        $isNewStudent =
+
+                            str_contains($promotionUpper, 'L0') ||
+                            str_contains($promotionUpper, 'L1') ||
+                            str_contains($promotionUpper, 'B1') ||
+                            str_contains($promotionUpper, 'PREPA') ||
+                            str_contains($promotionUpper, 'PRÉPARATOIR');
+                            str_contains($promotionUpper, 'PREPARATOIRE');
+                            str_contains($promotionUpper, 'G1');
+                            str_contains($promotionUpper,'Diplômé');
+
+
+                        if ($isNewStudent) {
+                            if ($pourcentage < 75) {
+                                $is_allowed = false;
+                                $rejection_reasons[] = "1er cycle (L1/B1/Prépa) : Exetat < 75 %";
+                                Log::info("Ligne $index - Rejet: L1/B1/Prépa avec $pourcentage%");
+                            }
+                        } else {
+                            // Étudiants déjà à l’université : L2, L3, B2, B3…
+                            if ($pourcentage < 70) {
+                                $is_allowed = false;
+                                $rejection_reasons[] = "1er cycle (L2/L3/B2/B3…) : Moyenne < 70 %";
+                                Log::info("Ligne $index - Rejet: 1er cycle universitaire avec $pourcentage%");
+                            }
+                        }
                     }
 
+                    // Deuxième cycle
                     if ($cycle == 2 && $pourcentage < 70) {
                         $is_allowed = false;
-                        $rejection_reasons[] = "Pourcentage < 70% (2ème cycle)";
-                        Log::info("Ligne $index - Rejet: Pourcentage $pourcentage% < 70% (2ème cycle)");
+                        $rejection_reasons[] = "2ème cycle : Pourcentage < 70 %";
+                        Log::info("Ligne $index - Rejet: 2ème cycle avec $pourcentage%");
                     }
+
 
                     // ============ VÉRIFICATION NUMÉRO ORANGE ============
                     $telephone = $row['telephone'] ?? '';
