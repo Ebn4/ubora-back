@@ -265,20 +265,20 @@ class CandidacyController extends Controller
                     if ($ageAtLimit !== null) {
                         if ($cycle == 1 && $ageAtLimit > 22) {
                             $is_allowed = false;
-                            $rejection_reasons[] = "Âge > 22 ans (1er cycle)";
+                            $rejection_reasons[] = "Âge supérieur à 22 ans pour le 1er cycle";
                             Log::info("Ligne $index - Rejet: Âge $ageAtLimit ans > 22 ans (1er cycle)");
                         }
 
                         if ($cycle == 2 && $ageAtLimit > 25) {
                             $is_allowed = false;
-                            $rejection_reasons[] = "Âge > 25 ans (2ème cycle)";
+                            $rejection_reasons[] = "Âge supérieur à 25 ans pour le 2ème cycle";
                             Log::info("Ligne $index - Rejet: Âge $ageAtLimit ans > 25 ans (2ème cycle)");
                         }
 
                         // Âge minimum raisonnable
                         if ($ageAtLimit < 17) {
                             $is_allowed = false;
-                            $rejection_reasons[] = "Âge < 17 ans";
+                            $rejection_reasons[] = "Âge inférieur à 17 ans";
                             Log::info("Ligne $index - Rejet: Âge $ageAtLimit ans < 17 ans");
                         }
                     }
@@ -295,23 +295,24 @@ class CandidacyController extends Controller
                             str_contains($promotionUpper, 'L1') ||
                             str_contains($promotionUpper, 'B1') ||
                             str_contains($promotionUpper, 'PREPA') ||
-                            str_contains($promotionUpper, 'PRÉPARATOIR');
-                            str_contains($promotionUpper, 'PREPARATOIRE');
-                            str_contains($promotionUpper, 'G1');
+                            str_contains($promotionUpper, 'PRÉPARATOIR') ||
+                            str_contains($promotionUpper, 'PRÉPARATOIRE') ||
+                            str_contains($promotionUpper, 'PREPARATOIRE') ||
+                            str_contains($promotionUpper, 'G1') ||
                             str_contains($promotionUpper,'Diplômé');
 
 
                         if ($isNewStudent) {
                             if ($pourcentage < 75) {
                                 $is_allowed = false;
-                                $rejection_reasons[] = "1er cycle (L1/B1/Prépa) : Exetat < 75 %";
+                                $rejection_reasons[] = "Note à l'examen d'État inférieure à 75% pour le 1er cycle (nouveaux entrants)";
                                 Log::info("Ligne $index - Rejet: L1/B1/Prépa avec $pourcentage%");
                             }
                         } else {
-                            // Étudiants déjà à l’université : L2, L3, B2, B3…
+                            // Étudiants déjà à l'université : L2, L3, B2, B3…
                             if ($pourcentage < 70) {
                                 $is_allowed = false;
-                                $rejection_reasons[] = "1er cycle (L2/L3/B2/B3…) : Moyenne < 70 %";
+                                $rejection_reasons[] = "Moyenne académique inférieure à 70% pour le 1er cycle";
                                 Log::info("Ligne $index - Rejet: 1er cycle universitaire avec $pourcentage%");
                             }
                         }
@@ -320,7 +321,7 @@ class CandidacyController extends Controller
                     // Deuxième cycle
                     if ($cycle == 2 && $pourcentage < 70) {
                         $is_allowed = false;
-                        $rejection_reasons[] = "2ème cycle : Pourcentage < 70 %";
+                        $rejection_reasons[] = "Moyenne académique inférieure à 70% pour le 2ème cycle";
                         Log::info("Ligne $index - Rejet: 2ème cycle avec $pourcentage%");
                     }
 
@@ -329,7 +330,7 @@ class CandidacyController extends Controller
                     $telephone = $row['telephone'] ?? '';
                     if (empty(trim($telephone)) || strtoupper(trim($telephone)) === 'NULL') {
                         $is_allowed = false;
-                        $rejection_reasons[] = "Numéro téléphone manquant";
+                        $rejection_reasons[] = "Numéro de téléphone manquant";
                         Log::info("Ligne $index - Rejet: Numéro téléphone manquant");
                     }
 
@@ -337,22 +338,25 @@ class CandidacyController extends Controller
                     $universite = $row['nom_universitouinstitutsuprieur'] ?? '';
                     if (empty(trim($universite)) || strtoupper(trim($universite)) === 'NULL') {
                         $is_allowed = false;
-                        $rejection_reasons[] = "Université manquante";
+                        $rejection_reasons[] = "Établissement d'enseignement supérieur non spécifié";
                         Log::info("Ligne $index - Rejet: Université manquante");
                     }
 
                     // ============ VÉRIFICATIONS SPÉCIFIQUES CYCLE 1 ============
                     if ($cycle == 1) {
                         // Diplôme d'État récent
-                        $diplomeYear = $row['anne_dobtentiondudiplmedtat'] ?? '';
-                        if (!empty($diplomeYear)) {
-                            $diplomeYearInt = intval($diplomeYear);
-                            $currentYearInt = intval($year);
+                        $firstYear = ['l0', 'l1', 'b1', 'prepa', 'preparatoire', 'g1','diplômé','préparatoire'];
+                        if(in_array(strtolower($row['promotion_academique']) ?? '', $firstYear)){
+                            $diplomeYear = $row['anne_dobtentiondudiplmedtat'] ?? '';
+                            if (!empty($diplomeYear)) {
+                                $diplomeYearInt = intval($diplomeYear);
+                                $currentYearInt = intval($year);
 
-                            if ($diplomeYearInt < ($currentYearInt - 1) || $diplomeYearInt > $currentYearInt) {
-                                $is_allowed = false;
-                                $rejection_reasons[] = "Diplôme non récent ($diplomeYearInt)";
-                                Log::info("Ligne $index - Rejet: Diplôme année $diplomeYearInt (attendu $currentYearInt ou $currentYearInt-1)");
+                                if ($diplomeYearInt < ($currentYearInt - 2) || $diplomeYearInt > $currentYearInt) {
+                                    $is_allowed = false;
+                                    $rejection_reasons[] = "Diplôme d'État obtenu il y a plus de deux ans";
+                                    Log::info("Ligne $index - Rejet: Diplôme année $diplomeYearInt (attendu $currentYearInt ou $currentYearInt-1)");
+                                }
                             }
                         }
 
@@ -362,7 +366,12 @@ class CandidacyController extends Controller
 
                         if (!$hasDiplome || !$hasReleves) {
                             $is_allowed = false;
-                            $rejection_reasons[] = "Documents manquants";
+                            if (!$hasDiplome) {
+                                $rejection_reasons[] = "Diplôme d'État manquant";
+                            }
+                            if (!$hasReleves) {
+                                $rejection_reasons[] = "Relevé de notes de la dernière année manquant";
+                            }
                             Log::info("Ligne $index - Rejet: Documents manquants (diplôme: " . ($hasDiplome ? 'oui' : 'non') . ", relevés: " . ($hasReleves ? 'oui' : 'non') . ")");
                         }
                     }
@@ -375,7 +384,7 @@ class CandidacyController extends Controller
                             strpos($nationalite, 'rdc') === false &&
                             strpos($nationalite, 'congo') === false) {
                             $is_allowed = false;
-                            $rejection_reasons[] = "Nationalité non congolaise";
+                            $rejection_reasons[] = "Nationalité non congolaise (requise pour le 2ème cycle)";
                             Log::info("Ligne $index - Rejet: Nationalité '$nationalite' non congolaise (2ème cycle)");
                         }
 
@@ -383,7 +392,7 @@ class CandidacyController extends Controller
                         $hasLettre = !empty(trim($row['lettre_demotivation'] ?? '')) && strtoupper(trim($row['lettre_demotivation'] ?? '')) !== 'NULL';
                         if (!$hasLettre) {
                             $is_allowed = false;
-                            $rejection_reasons[] = "Lettre motivation manquante";
+                            $rejection_reasons[] = "Lettre de motivation manquante (requise pour le 2ème cycle)";
                             Log::info("Ligne $index - Rejet: Lettre de motivation manquante (2ème cycle)");
                         }
                     }
@@ -447,6 +456,9 @@ class CandidacyController extends Controller
                             return FileHelper::normalizeFileName($file);
                         };
 
+                        // Préparer les raisons de rejet pour le stockage
+                        $rejectionReasonsFormatted = !empty($rejection_reasons) ? implode('; ', $rejection_reasons) : null;
+
                         // Créer la candidature
                         $candidacyData = [
                             'post_work_id' => $row['post_work_id'] ?? null,
@@ -494,18 +506,19 @@ class CandidacyController extends Controller
                             'period_id' => $period->id,
                             'is_allowed' => $is_allowed,
                             'cycle' => $cycle,
-                            'rejection_reasons' => !empty($rejection_reasons) ? implode('; ', $rejection_reasons) : null,
+                            'rejection_reasons' => $rejectionReasonsFormatted,
                             'promotion_academique' => $promotion,
                         ];
 
-                        Candidacy::create($candidacyData);
+                        // Créer la candidature et enregistrer dans la base de données
+                        $candidacy = Candidacy::create($candidacyData);
 
                         if ($is_allowed) {
                             $importedCount++;
                             Log::info("✓ Ligne $index importée - Email: $email - Cycle: $cycle - Promotion: $promotion");
                         } else {
                             $rejectedCount++;
-                            Log::info("✗ Ligne $index rejetée - Email: $email - Raisons: " . implode(', ', $rejection_reasons));
+                            Log::info("✗ Ligne $index rejetée - Email: $email - Raisons: " . $rejectionReasonsFormatted);
                         }
 
                     } catch (\Exception $e) {
