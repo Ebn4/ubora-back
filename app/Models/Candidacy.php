@@ -57,7 +57,9 @@ class Candidacy extends Model
         'evaluateur3',
         'period_id',
         'is_allowed',
-        'promotion_academique'
+        'promotion_academique',
+        'cycle',
+        'rejection_reasons'
     ];
 
     protected $attribute = ['moyenne', 'evaluations_effectuées'];

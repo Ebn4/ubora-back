@@ -128,6 +128,8 @@ class CandidacyResource extends JsonResource
             "lettre_motivation" => $this->lettre_motivation,
             "adresse_universite" => $this->adresse_universite,
             "promotion_academique" => $this->promotion_academique,
+            "cycle" => $this->cycle,
+            "rejection_reasons" => $this->rejection_reasons,
             "parente_agent_orange" => $this->parente_agent_orange,
             "institution_scolaire" => $this->institution_scolaire,
             "montant_frais" => $this->montant_frais,
@@ -141,6 +143,7 @@ class CandidacyResource extends JsonResource
             "period_year" => $this->period?->year . "-" . ($this->period?->year+1),
             'period_status' => $this->period?->status,
             "evaluators" => $this->dispatch,
+            "is_allowed" => $this->is_allowed,
             "evalutors_number" => $this->dispatch->count(),
             "nb_evaluation" => DispatchPreselection::where('candidacy_id', $this->id)->has("preselections")->get()->count(),
             "institute_count" => DB::table('candidats')
