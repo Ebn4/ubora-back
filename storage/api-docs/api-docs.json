@@ -905,6 +905,117 @@
                 }
             }
         },
+        "/api/candidates/{candidateId}/periods/{periodId}/evaluation-results": {
+            "get": {
+                "tags": [
+                    "Évaluation"
+                ],
+                "summary": "Récupérer tous les résultats d'évaluation d'un candidat pour une période donnée",
+                "operationId": "getCandidateEvaluationResultsByPeriod",
+                "parameters": [
+                    {
+                        "name": "candidateId",
+                        "in": "path",
+                        "description": "ID du candidat",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "periodId",
+                        "in": "path",
+                        "description": "ID de la période",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste des résultats d'évaluation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Evaluation results fetched successfully"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "criteria_id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "criteria_name": {
+                                                        "type": "string",
+                                                        "example": "Compétences techniques"
+                                                    },
+                                                    "ponderation": {
+                                                        "type": "number",
+                                                        "format": "float",
+                                                        "example": 10
+                                                    },
+                                                    "result": {
+                                                        "type": "number",
+                                                        "format": "float",
+                                                        "example": 8.5
+                                                    },
+                                                    "percentage": {
+                                                        "type": "number",
+                                                        "format": "float",
+                                                        "example": 85
+                                                    },
+                                                    "evaluator_name": {
+                                                        "type": "string",
+                                                        "example": "Jean Dupont"
+                                                    },
+                                                    "evaluated_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2024-01-15 10:30:00"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Candidat ou période non trouvé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Candidate not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/periods": {
             "get": {
                 "tags": [
@@ -1429,6 +1540,57 @@
                         "bearerAuth": []
                     }
                 ]
+            }
+        },
+        "/api/periods/{periodId}/selection-criteria-max-score": {
+            "get": {
+                "tags": [
+                    "Périodes"
+                ],
+                "summary": "Récupérer le score maximum des critères de sélection",
+                "operationId": "getSelectionCriteriaMaxScore",
+                "parameters": [
+                    {
+                        "name": "periodId",
+                        "in": "path",
+                        "description": "ID de la période",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Score maximum récupéré",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Max score fetched successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "max_score": {
+                                                    "type": "number",
+                                                    "example": 50
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/users": {
@@ -2077,6 +2239,10 @@
         {
             "name": "File Upload",
             "description": "File Upload"
+        },
+        {
+            "name": "Évaluation",
+            "description": "Évaluation"
         },
         {
             "name": "Périodes",
