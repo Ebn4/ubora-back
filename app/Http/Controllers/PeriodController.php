@@ -13,6 +13,8 @@ use App\Models\StatusHistorique;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class PeriodController extends Controller
 {
@@ -442,5 +444,60 @@ class PeriodController extends Controller
         return response()->json([
             "hasEvaluators" => $evaluators
         ]);
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/periods/{periodId}/selection-criteria-max-score",
+     *     summary="Récupérer le score maximum des critères de sélection",
+     *     operationId="getSelectionCriteriaMaxScore",
+     *     tags={"Périodes"},
+     *     @OA\Parameter(
+     *         name="periodId",
+     *         in="path",
+     *         required=true,
+     *         description="ID de la période",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Score maximum récupéré",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Max score fetched successfully"),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="object",
+     *                 @OA\Property(property="max_score", type="number", example=50)
+     *             )
+     *         )
+     *     )
+     * )
+     */
+    public function getSelectionCriteriaMaxScore($periodId)
+    {
+        try {
+            $maxScore = DB::table('period_criteria')
+                ->where('period_id', $periodId)
+                ->where('type', 'SELECTION')
+                ->sum('ponderation');
+
+            // Si pas de critères, utiliser 100 comme valeur par défaut
+            if (!$maxScore || $maxScore == 0) {
+                $maxScore = 100;
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Max score fetched successfully',
+                'data' => ['max_score' => (float) $maxScore]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching max score: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching max score'
+            ], 500);
+        }
     }
 }
