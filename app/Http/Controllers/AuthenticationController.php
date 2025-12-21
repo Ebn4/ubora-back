@@ -10,7 +10,7 @@ use \Exception;
 
 /**
  * @OA\Tag(
- *     name="Authentication",
+ *     name="Authentification",
  *     description="Opérations d'authentification (login/logout)"
  * )
  */

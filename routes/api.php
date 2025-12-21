@@ -23,6 +23,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('has-admin-role', HasAdminRoleController::class);
 
     Route::post('candidate/selections', [CandidacyController::class, 'candidateSelections']);
+    Route::get('/candidates/{candidateId}/periods/{periodId}/evaluation-results',
+[CandidacyController::class, 'getCandidateEvaluationResultsByPeriod']);
     Route::get('rejeted_candidacies', [CandidacyController::class, 'rejetedCandidacies']);
     Route::get("evaluators/{id}/candidacies", [EvaluatorController::class, 'getEvaluatorCandidacies']);
     Route::apiResource('preselection', PreselectionController::class)->except(['index', 'show']);

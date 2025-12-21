@@ -1631,4 +1631,276 @@ class CandidacyController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * @OA\Get(
+     *     path="/api/candidates/{candidateId}/periods/{periodId}/evaluation-results",
+     *     summary="Récupérer tous les résultats d'évaluation d'un candidat pour une période donnée",
+     *     operationId="getCandidateEvaluationResultsByPeriod",
+     *     tags={"Évaluation"},
+     *     @OA\Parameter(
+     *         name="candidateId",
+     *         in="path",
+     *         required=true,
+     *         description="ID du candidat",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="periodId",
+     *         in="path",
+     *         required=true,
+     *         description="ID de la période",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Liste des résultats d'évaluation",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Evaluation results fetched successfully"),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="criteria_id", type="integer", example=1),
+     *                     @OA\Property(property="criteria_name", type="string", example="Compétences techniques"),
+     *                     @OA\Property(property="ponderation", type="number", format="float", example=10.0),
+     *                     @OA\Property(property="result", type="number", format="float", example=8.5),
+     *                     @OA\Property(property="percentage", type="number", format="float", example=85.0),
+     *                     @OA\Property(property="evaluator_name", type="string", example="Jean Dupont"),
+     *                     @OA\Property(property="evaluated_at", type="string", format="date-time", example="2024-01-15 10:30:00")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Candidat ou période non trouvé",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Candidate not found")
+     *         )
+     *     )
+     * )
+     */
+    public function getCandidateEvaluationResultsByPeriod(int $candidateId, int $periodId)
+    {
+        try {
+            Log::info('API getCandidateEvaluationResultsByPeriod', [
+                'candidateId' => $candidateId,
+                'periodId' => $periodId
+            ]);
+
+            $candidacy = Candidacy::find($candidateId);
+            if (!$candidacy) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Candidat non trouvé'
+                ], 404);
+            }
+
+            // Vérifier que le candidat appartient à cette période
+            if ($candidacy->period_id != $periodId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ce candidat n\'appartient pas à cette période'
+                ], 400);
+            }
+
+            // Récupérer l'entretien
+            $interview = Interview::where('candidacy_id', $candidateId)->first();
+
+            if (!$interview) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Aucun entretien trouvé',
+                    'data' => [
+                        'candidate_info' => [
+                            'id' => $candidacy->id,
+                            'nom_complet' => trim($candidacy->etn_nom . ' ' . $candidacy->etn_postnom . ' ' . $candidacy->etn_prenom),
+                            'email' => $candidacy->etn_email,
+                            'universite' => $candidacy->universite_institut_sup,
+                            'ville' => $candidacy->ville,
+                            'genre' => $candidacy->sexe === 'M' ? 'Masculin' : 'Féminin',
+                            'telephone' => $candidacy->telephone,
+                            'nationalite' => $candidacy->nationalite,
+                            'faculte' => $candidacy->faculte,
+                            'promotion_academique' => $candidacy->promotion_academique,
+                            'selection_mean' => $candidacy->selectionMean ?? 0
+                        ],
+                        'evaluation_results' => []
+                    ]
+                ]);
+            }
+
+            // Récupérer les critères de sélection pour cette période
+            $criteriaList = DB::table('period_criteria')
+                ->where('period_id', $periodId)
+                ->where('type', 'SELECTION')
+                ->join('criterias', 'period_criteria.criteria_id', '=', 'criterias.id')
+                ->select([
+                    'criterias.id',
+                    'criterias.name',
+                    'criterias.description',
+                    'period_criteria.ponderation'
+                ])
+                ->get();
+
+            Log::info('Critères trouvés', ['count' => $criteriaList->count()]);
+
+            if ($criteriaList->isEmpty()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Aucun critère de sélection défini pour cette période',
+                    'data' => [
+                        'candidate_info' => [
+                            'id' => $candidacy->id,
+                            'nom_complet' => trim($candidacy->etn_nom . ' ' . $candidacy->etn_postnom . ' ' . $candidacy->etn_prenom),
+                            'email' => $candidacy->etn_email,
+                            'universite' => $candidacy->universite_institut_sup,
+                            'ville' => $candidacy->ville,
+                            'genre' => $candidacy->sexe === 'M' ? 'Masculin' : 'Féminin',
+                            'telephone' => $candidacy->telephone,
+                            'nationalite' => $candidacy->nationalite,
+                            'faculte' => $candidacy->faculte,
+                            'promotion_academique' => $candidacy->promotion_academique,
+                            'selection_mean' => $candidacy->selectionMean ?? 0
+                        ],
+                        'evaluation_results' => []
+                    ]
+                ]);
+            }
+
+            // Récupérer tous les résultats pour cet entretien
+            $results = DB::table('selection_result')
+                ->where('interview_id', $interview->id)
+                ->get()
+                ->keyBy('criteria_id');
+
+            Log::info('Résultats trouvés', ['count' => $results->count()]);
+
+            $evaluationResults = [];
+            $totalResult = 0;
+            $totalMaxPoints = 0;
+            $evaluatedCount = 0;
+
+            foreach ($criteriaList as $criteria) {
+                $criteriaId = $criteria->id;
+                $result = $results[$criteriaId] ?? null;
+
+                $ponderation = (float) $criteria->ponderation;
+                // Valeur par défaut si pondération est 0
+                if ($ponderation == 0) {
+                    $ponderation = 10;
+                }
+
+                $resultValue = $result ? (float) $result->result : 0;
+                $percentage = $ponderation > 0 ? round(($resultValue / $ponderation) * 100, 2) : 0;
+
+                // Récupérer le nom de l'évaluateur
+                $evaluatorName = 'Non évalué';
+                $isEvaluated = false;
+
+                if ($result && $result->evaluator_id) {
+                    $evaluator = DB::table('users')
+                        ->join('evaluators', 'users.id', '=', 'evaluators.user_id')
+                        ->where('evaluators.id', $result->evaluator_id)
+                        ->select('users.name')
+                        ->first();
+                    $evaluatorName = $evaluator ? $evaluator->name : 'Inconnu';
+                    $isEvaluated = true;
+                    $evaluatedCount++;
+                }
+
+                $evaluationResults[] = [
+                    'criteria_id' => $criteriaId,
+                    'criteria_name' => $criteria->name,
+                    'criteria_description' => $criteria->description ?? '',
+                    'ponderation' => $ponderation,
+                    'result' => $resultValue,
+                    'percentage' => $percentage,
+                    'evaluator_name' => $evaluatorName,
+                    'comment' => $result->comment ?? null,
+                    'evaluated_at' => $result ? $result->created_at : null,
+                    'is_evaluated' => $isEvaluated
+                ];
+
+                $totalResult += $resultValue;
+                $totalMaxPoints += $ponderation;
+            }
+
+            // Calculer les scores
+            $globalPercentage = $totalMaxPoints > 0 ? round(($totalResult / $totalMaxPoints) * 100, 2) : 0;
+            $meanScore = round(($globalPercentage / 100) * 20, 2);
+
+            $totalCriteriaCount = count($criteriaList);
+            $pendingCount = $totalCriteriaCount - $evaluatedCount;
+
+            // Préparer la réponse finale
+            $response = [
+                'success' => true,
+                'message' => 'Résultats d\'évaluation récupérés avec succès',
+                'data' => [
+                    'candidate_info' => [
+                        'id' => $candidacy->id,
+                        'nom_complet' => trim($candidacy->etn_nom . ' ' . $candidacy->etn_postnom . ' ' . $candidacy->etn_prenom),
+                        'email' => $candidacy->etn_email,
+                        'universite' => $candidacy->universite_institut_sup,
+                        'ville' => $candidacy->ville,
+                        'genre' => $candidacy->sexe === 'M' ? 'Masculin' : 'Féminin',
+                        'telephone' => $candidacy->telephone,
+                        'nationalite' => $candidacy->nationalite,
+                        'faculte' => $candidacy->faculte,
+                        'promotion_academique' => $candidacy->promotion_academique,
+                        'selection_mean' => $candidacy->selectionMean ?? $meanScore
+                    ],
+                    'interview_id' => $interview->id,
+                    'period_id' => $periodId,
+                    'mean_score' => $meanScore,
+                    'mean_percentage' => $globalPercentage,
+                    'evaluation_results' => $evaluationResults,
+                    'summary' => [
+                        'total_criteria' => $totalCriteriaCount,
+                        'criteria_evaluated' => $evaluatedCount,
+                        'criteria_pending' => $pendingCount,
+                        'total_points_obtained' => $totalResult,
+                        'total_points_possible' => $totalMaxPoints,
+                        'percentage' => $globalPercentage,
+                        'mean_score_20' => $meanScore
+                    ]
+                ]
+            ];
+
+            Log::info('Réponse préparée', [
+                'mean_score' => $meanScore,
+                'percentage' => $globalPercentage,
+                'evaluated' => $evaluatedCount,
+                'total' => $totalCriteriaCount
+            ]);
+
+            return response()->json($response);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            Log::error('Candidat non trouvé', [
+                'candidateId' => $candidateId,
+                'periodId' => $periodId
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Candidat non trouvé'
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error('Erreur API getCandidateEvaluationResultsByPeriod: ' . $e->getMessage(), [
+                'candidateId' => $candidateId,
+                'periodId' => $periodId,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur serveur: ' . (config('app.debug') ? $e->getMessage() : 'Veuillez contacter l\'administrateur')
+            ], 500);
+        }
+    }
 }
