@@ -8,6 +8,7 @@ class Interview extends Model
 {
     protected $fillable = [
         'candidacy_id',
+        'observation',
     ];
 
     public function candidacy()

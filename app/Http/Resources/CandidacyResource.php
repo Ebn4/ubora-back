@@ -99,6 +99,10 @@ class CandidacyResource extends JsonResource
         )?->pivot?->id;
         $periodId = $this->period_id;
 
+        // Récupérer l'observation de l'interview si elle existe
+        $interview = $this->interview;
+        $observation = $interview ? $interview->observation : null;
+
         return [
             "id" => $this->id,
             "post_work_id" => $this->post_work_id,
@@ -166,7 +170,14 @@ class CandidacyResource extends JsonResource
             "selection_count" => 0,
             "candidacy_preselection" => Preselection::where("dispatch_preselections_id", $idPivot)->exists(),
             "hasSelected" => $this->interview()->whereHas('selectionResults')->exists(),
-            "selectionMean" => $this->selectionMean ?? 0
+            "selectionMean" => $this->selectionMean ?? 0,
+            "interview" => $interview ? [
+                "id" => $interview->id,
+                "observation" => $interview->observation,
+                "created_at" => $interview->created_at,
+                "updated_at" => $interview->updated_at
+            ] : null,
+            "observation" => $observation
         ];
     }
 }

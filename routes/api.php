@@ -42,6 +42,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('candidates/{interviewId}/criterias/{criteriaId}/result', [CandidacyController::class, 'getCandidateSelectionResultByCriteria']);
     Route::get('candidates/{id}/evaluators', [CandidacyController::class, 'getCandidateEvaluators']);
     Route::get('candidates/interviews', [CandidacyController::class, 'getSelectedCandidates']);
+    Route::get('/interviews/{interview}/observation', [CandidacyController::class, 'getInterviewObservation']);
     Route::get('periods/criteria/{id}', [PeriodController::class, 'getCriteriaPeriod']);
     Route::get('/periods/{periodId}/selection-criteria-max-score', [PeriodController::class, 'getSelectionCriteriaMaxScore']);
     Route::get('/candidates/{id}/interviews', [CandidacyController::class, "getCandidateInterview"]);

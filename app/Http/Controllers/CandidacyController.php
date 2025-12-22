@@ -1074,9 +1074,8 @@ class CandidacyController extends Controller
      */
     public function candidateSelections(CandidateSelectionRequest $request)
     {
-
+        Log::info('Début évaluation candidature par évaluateur ID: ' . auth()->user()->id);
         try {
-
             DB::beginTransaction();
 
             $interviewId = $request->post('interviewId');
@@ -1089,18 +1088,35 @@ class CandidacyController extends Controller
                 ->first();
 
             if (!$evaluator) {
-                throw new \Exception("Action non autorisée : seul un évaluateur de sélection de la periode encours peut effectuer cette opération.");
+                throw new \Exception("Action non autorisée : seul un évaluateur de sélection de la période en cours peut effectuer cette opération.");
             }
 
-            foreach ($request->post('evaluations') as $evaluation) {
+            // Récupérer l'observation
+            $generalObservation = $request->post('generalObservation', null);
+
+            // Log pour débogage
+            Log::info('Évaluation reçue', [
+                'interviewId' => $interviewId,
+                'periodId' => $periodId,
+                'evaluator_id' => $evaluator->id,
+                'observation' => $generalObservation,
+                'evaluations_count' => count($request->post('evaluations', []))
+            ]);
+
+            foreach ($request->post('evaluations', []) as $index => $evaluation) {
                 $criteria = Criteria::query()->findOrFail($evaluation['key']);
                 $result = $evaluation['value'];
 
-                if (!is_int($result) || !isset($result) || !isEmpty($result)) {
-                    throw new \Exception("Résultat illégal : la valeur fournie doit être un entier numérique.");
+                if (!is_numeric($result) || !isset($result)) {
+                    throw new \Exception("Résultat illégal : la valeur fournie doit être un numérique.");
                 }
 
-                $interview->selectionResults()->attach([
+                Log::info("Critère {$index}", [
+                    'criteria_id' => $criteria->id,
+                    'result' => $result
+                ]);
+
+                $interview->selectionResults()->syncWithoutDetaching([
                     $criteria->id => [
                         "evaluator_id" => $evaluator->id,
                         "result" => $result
@@ -1108,19 +1124,53 @@ class CandidacyController extends Controller
                 ]);
             }
 
+            // Sauvegarder l'observation si elle existe
+            if ($generalObservation !== null) {
+                Log::info('Sauvegarde observation', ['observation' => $generalObservation]);
+                $interview->update([
+                    'observation' => $generalObservation
+                ]);
+            }
+
             DB::commit();
 
-            return response()
-                ->json([
-                    "data" => true
-                ]);
+            return response()->json([
+                "data" => true,
+                "message" => "Évaluation enregistrée avec succès",
+                "interview_id" => $interviewId,
+                "observation_saved" => $generalObservation !== null
+            ]);
+
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Erreur évaluation', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             throw new HttpResponseException(
-                response: response(
-                    ["errors" => $e->getMessage()]
-                )
+                response: response([
+                    "errors" => [$e->getMessage()]
+                ], 422)
             );
+        }
+    }
+
+    public function getInterviewObservation($interviewId)
+    {
+        try {
+            $interview = Interview::findOrFail($interviewId);
+
+            return response()->json([
+                'data' => [
+                    'observation' => $interview->observation
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'errors' => ['Entretien non trouvé']
+            ], 404);
         }
     }
 
