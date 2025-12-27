@@ -7,6 +7,7 @@ use App\Enums\PeriodStatusEnum;
 use App\Http\Requests\ChangePeriodStatusRequest;
 use App\Http\Resources\CriteriaResource;
 use App\Http\Resources\PeriodResource;
+use App\Models\Candidacy;
 use App\Models\Evaluator;
 use App\Models\Period;
 use App\Models\StatusHistorique;
@@ -499,5 +500,76 @@ class PeriodController extends Controller
                 'message' => 'Error fetching max score'
             ], 500);
         }
+    }
+
+    public function getPeriodState($periodId, Request $request): JsonResponse
+    {
+        $request->validate([
+            'page' => 'integer|min:1',
+            'perPage' => 'integer|min:1|max:100',
+            'search' => 'nullable|string',
+            'type' => 'nullable|string|in:SELECTION,PRESELECTION'
+        ]);
+
+        $page = $request->input('page', 1);
+        $perPage = $request->input('perPage', 10);
+        $search = $request->input('search', '');
+        $type = $request->input('type', '');
+
+        // Récupérer les évaluateurs avec pagination
+        $evaluatorsQuery = Evaluator::with(['user:id,name,email'])
+            ->where('period_id', $periodId);
+
+        // Recherche sur le nom ou email de l'utilisateur
+        if ($search) {
+            $evaluatorsQuery->whereHas('user', function($query) use ($search) {
+                $query->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        if ($type) {
+            $evaluatorsQuery->where('type', $type);
+        }
+
+        $evaluators = $evaluatorsQuery->paginate($perPage, ['*'], 'page', $page);
+
+        // Vérifier si dispatché
+        $isDispatched = Candidacy::query()
+            ->where("period_id", $periodId)
+            ->whereHas("dispatch")
+            ->exists();
+
+        // Vérifier si la période a des évaluateurs
+        $hasEvaluators = Evaluator::where('period_id', $periodId)->exists();
+
+        // Formater les évaluateurs avec les informations utilisateur
+        $formattedEvaluators = $evaluators->map(function($evaluator) {
+            return [
+                'id' => $evaluator->id,
+                'user_id' => $evaluator->user_id,
+                'type' => $evaluator->type,
+                'period_id' => $evaluator->period_id,
+                'name' => $evaluator->user->name ?? null,
+                'email' => $evaluator->user->email ?? null,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'evaluators' => $formattedEvaluators,
+                'isDispatched' => $isDispatched,
+                'hasEvaluators' => $hasEvaluators,
+                'pagination' => [
+                    'current_page' => $evaluators->currentPage(),
+                    'last_page' => $evaluators->lastPage(),
+                    'per_page' => $evaluators->perPage(),
+                    'total' => $evaluators->total(),
+                    'from' => $evaluators->firstItem(),
+                    'to' => $evaluators->lastItem(),
+                ]
+            ]
+        ]);
     }
 }
