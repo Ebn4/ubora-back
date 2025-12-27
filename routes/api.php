@@ -48,6 +48,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/candidates/{id}/interviews', [CandidacyController::class, "getCandidateInterview"]);
     Route::get('/candidates/{id}/has-selection', [CandidacyController::class, "candidateHasSelection"]);
     Route::apiResource('period', PeriodController::class);
+    Route::get('/periods/{period}/state', [PeriodController::class, 'getPeriodState']);
 
     Route::get('evaluators/is-selector-evaluator', [EvaluatorController::class, 'isSelectorEvaluator']);
     Route::get('evaluators/is-preselector-evaluator', [EvaluatorController::class, 'isPreselectorEvaluator']);
