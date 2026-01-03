@@ -145,6 +145,7 @@ class CandidacyController extends Controller
                     'L0','L1', 'L2', 'L3',
                     'G1', 'G2', 'G3',
                     'B1', 'B2', 'B3','Diplome','Diplomé',
+                    'BAC+0', 'BAC+1', 'BAC+2', 'BAC+3',
                     'PREPARATOIRE', 'PREPA','Préparatoir', 'Préparatoir',
                     'BAC+1', 'BAC+2', 'BAC+3',
                     '1ERE ANNEE', '1ÈRE ANNÉE',
@@ -623,11 +624,12 @@ class CandidacyController extends Controller
     {
         try {
             $query = Candidacy::query()->where('is_allowed', true);
-            $periodId = Period::where('year', now()->year)->first()->id;
+
+            // Toujours avoir un fallback
+            $defaultPeriodId = Period::orderBy('year', 'desc')->first()?->id;
 
             if ($request->has('search') && $request->input('search') != null) {
                 $search = $request->input('search');
-
                 $query = $query->where(function ($q) use ($search) {
                     $q->where('etn_nom', 'like', "%$search%")
                         ->orWhere('etn_prenom', 'like', "%$search%")
@@ -642,14 +644,21 @@ class CandidacyController extends Controller
             }
 
             if ($request->has('periodId') && $request->input('periodId') != null) {
-                $periodId = $request->input('periodId');
-                $query = $query->where('period_id', $periodId);
+                // Si un periodId est fourni, l'utiliser
+                $query = $query->where('period_id', $request->input('periodId'));
             } else {
-                $query = $query->where('period_id', $periodId);
+                // Sinon, utiliser la période actuelle OU la plus récente
+                $currentPeriodId = Period::where('year', now()->year)->first()?->id;
+
+                if ($currentPeriodId) {
+                    $query = $query->where('period_id', $currentPeriodId);
+                } elseif ($defaultPeriodId) {
+                    $query = $query->where('period_id', $defaultPeriodId);
+                }
+                // Si aucun period n'existe, la query reste sans filtre period_id
             }
 
             $perPage = $request->input('per_page', 5);
-
             $paginated = $query->paginate($perPage);
 
             return CandidacyResource::collection($paginated);
@@ -724,11 +733,12 @@ class CandidacyController extends Controller
     {
         try {
             $query = Candidacy::query()->where('is_allowed', false);
-            $periodId = Period::where('year', now()->year)->first()->id;
+
+            $currentPeriod = Period::where('year', now()->year)->first();
+            $periodId = $currentPeriod ? $currentPeriod->id : null;
 
             if ($request->has('search') && $request->input('search') != null) {
                 $search = $request->input('search');
-
                 $query = $query->where(function ($q) use ($search) {
                     $q->where('etn_nom', 'like', "%$search%")
                         ->orWhere('etn_prenom', 'like', "%$search%")
@@ -746,11 +756,13 @@ class CandidacyController extends Controller
                 $periodId = $request->input('periodId');
                 $query = $query->where('period_id', $periodId);
             } else {
-                $query = $query->where('period_id', $periodId);
+                if ($periodId !== null) {
+                    $query = $query->where('period_id', $periodId);
+                }
+                // Si $periodId est null, ne pas filtrer par période
             }
 
             $perPage = $request->input('per_page', 5);
-
             $paginated = $query->paginate($perPage);
 
             return CandidacyResource::collection($paginated);
@@ -1291,41 +1303,116 @@ class CandidacyController extends Controller
 
     public function getSelectedCandidates(Request $request): AnonymousResourceCollection
     {
-        $perPageInput = $request->input('per_page', 10);
+        try {
+            $perPageInput = $request->input('per_page', 10);
 
-        if ($request->has('per_page')) {
-            $perPage = $request->input('per_page');
-        }
+            $period = $this->determinePeriod($request);
 
-        if ($request->has('periodId')) {
-            $periodId = $request->get('periodId');
-            $period = Period::query()->findOrFail($periodId);
-        } else {
-            $currentYear = date("Y");
-            $period = Period::query()->where("year", $currentYear)->firstOrFail();
-        }
-
-        $candidates = Candidacy::query()
-            ->where("period_id", $period->id)
-            ->whereHas('interview');
-
-        if ($request->has('search')) {
-            $search = $request->input('search');
-            $candidates = $candidates->whereLike("etn_nom", "%$search%");
-        }
-
-         if (is_string($perPageInput) && strtolower($perPageInput) === 'all') {
-            $candidates = $candidates->get();
-        } else {
-            // Conversion en int avec valeur par défaut
-            $perPage = (int)$perPageInput;
-            if ($perPage <= 0) {
-                $perPage = 10;
+            if (!$period) {
+                // Aucune période trouvée, retourner une collection vide
+                return CandidacyResource::collection(
+                    new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10)
+                );
             }
-            $candidates = $candidates->paginate($perPage);
+
+            // 2. Construire la requête
+            $candidates = Candidacy::query()
+                ->where("period_id", $period->id)
+                ->whereHas('interview');
+
+            // 3. Appliquer les filtres de recherche
+            if ($request->has('search') && !empty($request->input('search'))) {
+                $search = $request->input('search');
+                $candidates = $candidates->where(function ($query) use ($search) {
+                    $query->where("etn_nom", "LIKE", "%{$search}%")
+                        ->orWhere("etn_prenom", "LIKE", "%{$search}%")
+                        ->orWhere("etn_postnom", "LIKE", "%{$search}%");
+                });
+            }
+
+            // 4. Gérer la pagination
+            if (is_string($perPageInput) && strtolower($perPageInput) === 'all') {
+                $candidates = $candidates->get();
+
+                // Créer une pagination manuelle pour garder la même structure
+                return CandidacyResource::collection(
+                    new \Illuminate\Pagination\LengthAwarePaginator(
+                        $candidates,
+                        $candidates->count(),
+                        $candidates->count(),
+                        1
+                    )
+                );
+            } else {
+                // Conversion sécurisée en int
+                $perPage = filter_var($perPageInput, FILTER_VALIDATE_INT, [
+                    'options' => [
+                        'default' => 10,
+                        'min_range' => 1,
+                        'max_range' => 100
+                    ]
+                ]);
+
+                $candidates = $candidates->paginate($perPage);
+            }
+
+            return CandidacyResource::collection($candidates);
+
+        } catch (\Throwable $th) {
+            Log::error('Error in getSelectedCandidates: ' . $th->getMessage(), [
+                'request' => $request->all(),
+                'trace' => $th->getTraceAsString()
+            ]);
+
+            // Retourner une collection vide en cas d'erreur
+            return CandidacyResource::collection(
+                new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10)
+            );
+        }
+    }
+
+    /**
+     * Helper method pour déterminer la période
+     */
+    private function determinePeriod(Request $request): ?Period
+    {
+        // 1. Priorité : periodId depuis la requête
+        if ($request->filled('periodId')) {
+            $periodId = $request->input('periodId');
+            $period = Period::find($periodId);
+
+            if ($period) {
+                return $period;
+            }
+
+            // Si periodId fourni mais non trouvé, loguer l'erreur
+            Log::warning('Period ID not found in database', ['periodId' => $periodId]);
         }
 
-        return CandidacyResource::collection($candidates);
+        // 2. Période de l'année courante
+        $currentYear = date("Y");
+        $currentYearPeriod = Period::where("year", $currentYear)->first();
+
+        if ($currentYearPeriod) {
+            return $currentYearPeriod;
+        }
+
+        // 3. Dernière période disponible (la plus récente)
+        $latestPeriod = Period::orderBy('year', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        if ($latestPeriod) {
+            Log::info('Using latest period as fallback', [
+                'period_id' => $latestPeriod->id,
+                'year' => $latestPeriod->year
+            ]);
+            return $latestPeriod;
+        }
+
+        // 4. Aucune période disponible
+        Log::warning('No periods available in database');
+        return null;
     }
 
     public function getSelectionCandidates(Request $request, int $periodId): AnonymousResourceCollection
