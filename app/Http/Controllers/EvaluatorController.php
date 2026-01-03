@@ -181,33 +181,100 @@ class EvaluatorController extends Controller
         return CandidacyResource::collection($candidacies);
     }
 
-    public function isSelectorEvaluator(): JsonResponse
+    public function isSelectorEvaluator(Request $request): JsonResponse
     {
-        $userId = auth()->user()->id;
-        $evaluators = Evaluator::query()
-            ->where('type', EvaluatorTypeEnum::EVALUATOR_SELECTION->value)
-            ->where('user_id', $userId)
-            ->whereHas('period', function ($query) {
-                $query->where('year', Carbon::now()->year);
-            })
-            ->exists();
-        return response()->json([
-            "isSelectorEvaluator" => $evaluators
-        ]);
+        try {
+            $userId = auth()->user()->id;
+
+            if ($request->has('periodId') && $request->input('periodId') != null) {
+                $periodId = $request->input('periodId');
+
+                $evaluators = Evaluator::query()
+                    ->where('type', EvaluatorTypeEnum::EVALUATOR_SELECTION->value)
+                    ->where('user_id', $userId)
+                    ->where('period_id', $periodId)
+                    ->exists();
+
+                return response()->json([
+                    "isSelectorEvaluator" => $evaluators
+                ]);
+            }
+
+            $currentPeriod = Period::where('year', Carbon::now()->year)->first();
+
+            if (!$currentPeriod) {
+                // Fallback : dernière période créée
+                $currentPeriod = Period::orderBy('year', 'desc')->first();
+            }
+
+            if ($currentPeriod) {
+                $evaluators = Evaluator::query()
+                    ->where('type', EvaluatorTypeEnum::EVALUATOR_SELECTION->value)
+                    ->where('user_id', $userId)
+                    ->where('period_id', $currentPeriod->id)
+                    ->exists();
+
+                return response()->json([
+                    "isSelectorEvaluator" => $evaluators
+                ]);
+            }
+
+            // Aucune période n'existe
+            return response()->json([
+                "isSelectorEvaluator" => false
+            ]);
+        } catch (\Throwable $th) {
+            return response()->json([
+                "isSelectorEvaluator" => false
+            ]);
+        }
     }
 
-    public function isPreselectorEvaluator(): JsonResponse
+    public function isPreselectorEvaluator(Request $request): JsonResponse
     {
-        $userId = auth()->user()->id;
-        $evaluators = Evaluator::query()
-            ->where('type', EvaluatorTypeEnum::EVALUATOR_PRESELECTION->value)
-            ->where('user_id', $userId)
-            ->whereHas('period', function ($query) {
-                $query->where('year', Carbon::now()->year);
-            })
-            ->exists();
-        return response()->json([
-            "isPreselectorEvaluator" => $evaluators
-        ]);
+        try {
+            $userId = auth()->user()->id;
+
+            if ($request->has('periodId') && $request->input('periodId') != null) {
+                $periodId = $request->input('periodId');
+
+                $evaluators = Evaluator::query()
+                    ->where('type', EvaluatorTypeEnum::EVALUATOR_PRESELECTION->value)
+                    ->where('user_id', $userId)
+                    ->where('period_id', $periodId)
+                    ->exists();
+
+                return response()->json([
+                    "isPreselectorEvaluator" => $evaluators
+                ]);
+            }
+
+            $currentPeriod = Period::where('year', Carbon::now()->year)->first();
+
+            if (!$currentPeriod) {
+                $currentPeriod = Period::orderBy('year', 'desc')->first();
+            }
+
+            if ($currentPeriod) {
+                $evaluators = Evaluator::query()
+                    ->where('type', EvaluatorTypeEnum::EVALUATOR_PRESELECTION->value)
+                    ->where('user_id', $userId)
+                    ->where('period_id', $currentPeriod->id)
+                    ->exists();
+
+                return response()->json([
+                    "isPreselectorEvaluator" => $evaluators
+                ]);
+            }
+
+            // Aucune période n'existe
+            return response()->json([
+                "isPreselectorEvaluator" => false
+            ]);
+        } catch (\Throwable $th) {
+            return response()->json([
+                "isPreselectorEvaluator" => false
+            ]);
+        }
     }
 }
