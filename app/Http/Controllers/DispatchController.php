@@ -89,13 +89,13 @@ class DispatchController extends Controller
             ->where("user_id", auth()->user()->id)
             ->where("type", EvaluatorTypeEnum::EVALUATOR_PRESELECTION->value)
             ->where("period_id", $periodId)
-            ->firstOrFail();
+            ->first();
         if (!$dataEvaluateur) {
-            throw new HttpResponseException(
-                response: response()->json([
-                    "error" => "Vous n'êtes pas autorisé à accéder à cette ressource."
-                ])
-            );
+            return response()->json([
+                'success' => false,
+                'message' => 'Vous n\'êtes pas assigné comme évaluateur pour cette période.',
+                'data' => [] // Liste vide pour éviter les erreurs côté frontend
+            ], 200);
         }
         $evaluateurId = $dataEvaluateur?->id;
 
