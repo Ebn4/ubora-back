@@ -91,7 +91,6 @@ class UserController extends Controller
     }
 
 
-
     /**
      * @OA\Get(
      *     path="/api/user",
@@ -166,5 +165,63 @@ class UserController extends Controller
     {
         $user = User::query()->findOrFail($id);
         $user->delete();
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/users/admin",
+     *     tags={"Utilisateurs"},
+     *     summary="Créer un utilisateur administrateur",
+     *     description="Crée un nouvel utilisateur avec le rôle d'administrateur.",
+     *     operationId="createAdminUser",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"name","email","password"},
+     *             @OA\Property(property="name", type="string", example="Admin User"),
+     *             @OA\Property(property="email", type="string", format="email", example="admin@example.com"),
+     *             @OA\Property(property="profil", type="string", example="Administrator"),
+     *             @OA\Property(property="password", type="string", format="password", example="password123")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Utilisateur administrateur créé avec succès",
+     *         @OA\JsonContent(ref="#/components/schemas/UserResource")
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Non authentifié",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Non authentifié")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Non autorisé",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Accès interdit")
+     *         )
+     *     )
+     * )
+     */
+    public function createAdminUser(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'profil' => 'string|max:255',
+            'password' => 'required|string|min:8',
+        ]);
+
+        $user = User::create([
+            'name' => $request->input('name'),
+            'email' => $request->input('email'),
+            'profil' => $request->input('profil'),
+            'password' => bcrypt($request->input('password')),
+            'role' => 'ADMIN',
+        ]);
+
+        return new UserResource($user);
     }
 }

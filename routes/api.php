@@ -16,6 +16,7 @@ use App\Http\Controllers\UserController;
 
 Route::post('login', [AuthenticationController::class, 'login']);
 Route::apiResource('users', UserController::class)->only(['store']);
+Route::post('/users/admin', [UserController::class, 'createAdminUser']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [UserController::class, 'show']);
