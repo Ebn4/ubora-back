@@ -15,7 +15,7 @@
     },
     "servers": [
         {
-            "url": "http://my-default-host.com",
+            "url": "http://localhost:8001",
             "description": "Serveur API Ubora"
         }
     ],
@@ -23,7 +23,7 @@
         "/api/login": {
             "post": {
                 "tags": [
-                    "Authentication"
+                    "Authentification"
                 ],
                 "summary": "Authentifier un utilisateur",
                 "description": "Permet de se connecter avec un CUID et un mot de passe. Retourne les informations de l'utilisateur et un token d'authentification (ex: JWT dans UserResource).",
@@ -96,7 +96,7 @@
         "/api/logout": {
             "post": {
                 "tags": [
-                    "Authentication"
+                    "Authentification"
                 ],
                 "summary": "Déconnecter l'utilisateur courant",
                 "description": "Invalide le token d'authentification actif (ex: supprime le JWT du côté serveur ou blacklist).",
@@ -1821,6 +1821,91 @@
                     }
                 ]
             }
+        },
+        "/api/users/admin": {
+            "post": {
+                "tags": [
+                    "Utilisateurs"
+                ],
+                "summary": "Créer un utilisateur administrateur",
+                "description": "Crée un nouvel utilisateur avec le rôle d'administrateur.",
+                "operationId": "createAdminUser",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Admin User"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "admin@example.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "password123"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Utilisateur administrateur créé avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserResource"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Non authentifié"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Non autorisé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Accès interdit"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -2217,8 +2302,8 @@
     },
     "tags": [
         {
-            "name": "Authentication",
-            "description": "Authentication"
+            "name": "Authentification",
+            "description": "Opérations d'authentification (login/logout)"
         },
         {
             "name": "Candidatures",

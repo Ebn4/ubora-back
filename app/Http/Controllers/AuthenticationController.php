@@ -23,7 +23,7 @@ class AuthenticationController extends Controller
     /**
      * @OA\Post(
      *     path="/api/login",
-     *     tags={"Authentication"},
+     *     tags={"Authentification"},
      *     summary="Authentifier un utilisateur",
      *     description="Permet de se connecter avec un CUID et un mot de passe. Retourne les informations de l'utilisateur et un token d'authentification (ex: JWT dans UserResource).",
      *     operationId="login",
@@ -70,7 +70,7 @@ class AuthenticationController extends Controller
     /**
      * @OA\Post(
      *     path="/api/logout",
-     *     tags={"Authentication"},
+     *     tags={"Authentification"},
      *     summary="Déconnecter l'utilisateur courant",
      *     description="Invalide le token d'authentification actif (ex: supprime le JWT du côté serveur ou blacklist).",
      *     security={{"bearerAuth": {}}},
