@@ -3,8 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\AuthenticationRequest;
+use App\Http\Requests\VerifyOtpRequest;
 use App\Http\Resources\UserResource;
 use App\Services\AuthenticationService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use \Exception;
 
@@ -56,16 +60,21 @@ class AuthenticationController extends Controller
     public function login(AuthenticationRequest $request)
     {
         try {
-            $user = $this->authenticationService->login($request->cuid, $request->password);
-            return new UserResource($user);
-        } catch (Exception $e) {
-            return throw new HttpResponseException(
-                response()->json(data: [
-                    "errors" => $e->getMessage()
-                ], status: 400)
+            $result = $this->authenticationService->login(
+                $request->cuid,
+                $request->password
             );
+            return response()->json($result, 200);
+
+        } catch (\Exception $e) {
+            Log::error('Technical error during login', ['exception' => $e]);
+            return response()->json([
+                'success' => false,
+                'error' => 'Service temporairement indisponible. Veuillez réessayer plus tard.'
+            ], 500);
         }
     }
+
 
     /**
      * @OA\Post(
@@ -100,4 +109,80 @@ class AuthenticationController extends Controller
             );
         }
     }
+
+    public function resendOtp(Request $request)
+    {
+        $request->validate([
+            'cuid' => 'required|string'
+        ]);
+
+        try {
+            // Vérifier si les données LDAP sont toujours en cache
+            $ldapUser = Cache::get("ldap_user_{$request->cuid}");
+            if (!$ldapUser) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Session expirée. Veuillez vous reconnecter.'
+                ], 401);
+            }
+
+            // Envoyer l'OTP via le service
+            $channel = $this->authenticationService->resendOtp($request->cuid);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Un nouveau code a été envoyé via " . ($otpResult['channel'] ?? 'inconnu') . "."
+            ]);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 400);
+        }
+    }
+
+
+
+    public function verifyOtp(VerifyOtpRequest $request)
+    {
+        Log::info("Je suis dans le controller verify");
+
+        try {
+            $result = $this->authenticationService->verifyOtp(
+                $request->cuid,
+                $request->otp
+            );
+
+            Log::info('Résultat verifyOtp', $result);
+
+            $result['user']->token = $result['token'];
+
+            return response()->json([
+                'success' => true,
+                'user' => new UserResource($result['user']),
+            ], 200);
+
+        } catch (\Exception $e) {
+            // Si le message contient "OTP" c'est un problème utilisateur
+            if (str_contains($e->getMessage(), 'OTP') || str_contains($e->getMessage(), 'Session expirée')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => $e->getMessage(),
+                ], 200); // 200 car ce n'est pas une erreur serveur
+            }
+
+            Log::error('Erreur verifyOtp', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Erreur interne du serveur.'
+            ], 500);
+        }
+    }
+
+
 }

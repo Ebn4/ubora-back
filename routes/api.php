@@ -15,6 +15,8 @@ use App\Http\Controllers\PreselectionController;
 use App\Http\Controllers\UserController;
 
 Route::post('login', [AuthenticationController::class, 'login']);
+Route::post('verify-otp',[AuthenticationController::class, 'verifyOtp']);
+Route::post('resend-otp',[AuthenticationController::class, 'resendOtp']);
 Route::apiResource('users', UserController::class)->only(['store']);
 
 Route::middleware('auth:sanctum')->group(function () {
