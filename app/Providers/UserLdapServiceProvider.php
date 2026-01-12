@@ -2,7 +2,7 @@
 
 namespace App\Providers;
 
-use App\FakeUserLdapServiceImpl;
+use App\UserLdapServiceImpl;
 use App\Services\UserLdapService;
 use Illuminate\Support\ServiceProvider;
 
@@ -14,7 +14,7 @@ class UserLdapServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(UserLdapService::class, function () {
-            return new FakeUserLdapServiceImpl();
+            return new UserLdapServiceImpl();
         });
     }
 

@@ -2,9 +2,10 @@
 
 namespace App\Providers;
 
-use App\FakeAuthenticationServiceImpl;
+use App\AuthenticationServiceImpl;
 use App\Services\AuthenticationService;
 use App\Services\UserService;
+use App\Services\UserLdapService;
 use Illuminate\Support\ServiceProvider;
 
 class AuthenticationServiceProvider extends ServiceProvider
@@ -16,7 +17,8 @@ class AuthenticationServiceProvider extends ServiceProvider
     {
         $this->app->singleton(AuthenticationService::class, function ($app) {
             $userService = $app->make(UserService::class);
-            return new FakeAuthenticationServiceImpl($userService);
+            $userLdapService = $app->make(UserLdapService::class);
+            return new AuthenticationServiceImpl($userService,$userLdapService);
         });
     }
 

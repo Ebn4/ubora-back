@@ -16,13 +16,13 @@ class UserServiceImpl implements Services\UserService
      */
     public function findByEmail(string $email): User
     {
-        try {
-            return User::query()
-                ->where('email', $email)
-                ->firstOrFail();
-        } catch (ModelNotFoundException $e) {
-            throw new Exception($e->getMessage());
+        $user = User::where('email', $email)->first();
+
+        if (!$user) {
+            throw new Exception("Utilisateur non autorisé.");
         }
+
+        return $user;
     }
 
     /**
