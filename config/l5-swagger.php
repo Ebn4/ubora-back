@@ -14,6 +14,12 @@ return [
                 */
                 'api' => 'api/documentation',
             ],
+            'servers' => [
+                [
+                    'url' => env('APP_URL', 'http://localhost:8001') . '/api',
+                    'description' => 'Local API Server',
+                ],
+            ],
             'paths' => [
                 /*
                  * Edit to include full URL in ui for assets
@@ -50,7 +56,9 @@ return [
             /*
              * Route for accessing parsed swagger annotations.
             */
-            'docs' => 'docs',
+            'docs' => storage_path('api-docs'),
+
+            'docs_json' => 'api-docs.json',
 
             /*
              * Route for Oauth2 authentication callback.
