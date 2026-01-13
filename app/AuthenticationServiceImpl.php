@@ -59,7 +59,7 @@ class AuthenticationServiceImpl implements \App\Services\AuthenticationService
             if (str_contains($message, 'Identifiants') || str_contains($message, 'Invalid credentials')) {
                 return [
                     'success' => false,
-                    'error' => 'Identifiants incorrects.'
+                    'error' => 'Cuid ou mot de passe incorrect.'
                 ];
             }
 

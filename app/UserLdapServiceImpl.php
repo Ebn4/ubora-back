@@ -67,7 +67,7 @@ class UserLdapServiceImpl implements \App\Services\UserLdapService
             $reqStatus = $userData['REQSTATUS'] ?? null;
 
             if ($reqStatus !== 'SUCCESS') {
-                throw new Exception('Cuid ou mot de passe incorrect');
+                throw new Exception('Identifiants incorrects.');
             }
 
             // Nettoyer les champs
