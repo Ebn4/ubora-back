@@ -28,31 +28,41 @@ class AuthenticationController extends Controller
      * @OA\Post(
      *     path="/api/login",
      *     tags={"Authentification"},
-     *     summary="Authentifier un utilisateur",
-     *     description="Permet de se connecter avec un CUID et un mot de passe. Retourne les informations de l'utilisateur et un token d'authentification (ex: JWT dans UserResource).",
+     *     summary="Authentifier un utilisateur et initier l'OTP",
+     *     description="Permet de se connecter avec un CUID et un mot de passe. En cas de succès, un code OTP est envoyé par email ou SMS. La réponse est toujours en 200, avec un champ 'success' indiquant le statut.",
      *     operationId="login",
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
      *             required={"cuid","password"},
-     *             @OA\Property(property="cuid", type="string", example="AB12345", description="Identifiant unique de l'utilisateur"),
+     *             @OA\Property(property="cuid", type="string", example="BNJK2032", description="Identifiant unique de l'utilisateur"),
      *             @OA\Property(property="password", type="string", format="password", example="s3cr3tP@ss", description="Mot de passe de l'utilisateur")
      *         )
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="Authentification réussie",
+     *         description="Réponse structurée (succès ou échec métier)",
      *         @OA\JsonContent(
-     *           type="object",
-     *           @OA\Property(property="token", type="string"),
-     *           @OA\Property(property="user", ref="#/components/schemas/UserResource")
-    *          )
+     *             oneOf={
+     *                 @OA\Schema(
+     *                     type="object",
+     *                     @OA\Property(property="success", type="boolean", example=true),
+     *                     @OA\Property(property="data", ref="#/components/schemas/LoginSuccessResponse")
+     *                 ),
+     *                 @OA\Schema(
+     *                     type="object",
+     *                     @OA\Property(property="success", type="boolean", example=false),
+     *                     @OA\Property(property="error", type="string", example="Cuid ou mot de passe incorrect.")
+     *                 )
+     *             }
+     *         )
      *     ),
      *     @OA\Response(
-     *         response=400,
-     *         description="Erreur d'authentification (CUID invalide, mot de passe incorrect, utilisateur désactivé, etc.)",
+     *         response=500,
+     *         description="Erreur technique imprévue (LDAP injoignable, timeout, etc.)",
      *         @OA\JsonContent(
-     *             @OA\Property(property="errors", type="string", example="Invalid credentials.")
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="error", type="string", example="Service temporairement indisponible. Veuillez réessayer plus tard.")
      *         )
      *     )
      * )
@@ -110,6 +120,40 @@ class AuthenticationController extends Controller
         }
     }
 
+    /**
+     * @OA\Post(
+     *     path="/api/resend-otp",
+     *     tags={"Authentification"},
+     *     summary="Renvoyer un nouveau code OTP",
+     *     description="Renvoie un nouveau code OTP pour le CUID fourni (doit être dans la session active).",
+     *     operationId="resendOtp",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"cuid"},
+     *             @OA\Property(property="cuid", type="string", example="DNHG8720")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Succès ou échec",
+     *         @OA\JsonContent(
+     *             oneOf={
+     *                 @OA\Schema(
+     *                     type="object",
+     *                     @OA\Property(property="success", type="boolean", example=true),
+     *                     @OA\Property(property="message", type="string", example="Un nouveau code a été envoyé via email.")
+     *                 ),
+     *                 @OA\Schema(
+     *                     type="object",
+     *                     @OA\Property(property="success", type="boolean", example=false),
+     *                     @OA\Property(property="error", type="string", example="Session expirée. Veuillez vous reconnecter.")
+     *                 )
+     *             }
+     *         )
+     *     )
+     * )
+     */
     public function resendOtp(Request $request)
     {
         $request->validate([
@@ -143,7 +187,41 @@ class AuthenticationController extends Controller
     }
 
 
-
+     /**
+     * @OA\Post(
+     *     path="/api/verify-otp",
+     *     tags={"Authentification"},
+     *     summary="Vérifier le code OTP et finaliser la connexion",
+     *     description="Valide le code OTP fourni et retourne les données utilisateur + token en cas de succès.",
+     *     operationId="verifyOtp",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"cuid","otp"},
+     *             @OA\Property(property="cuid", type="string", example="DHJS3256"),
+     *             @OA\Property(property="otp", type="string", example="123456", description="Code OTP à 6 chiffres")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Succès ou échec de vérification",
+     *         @OA\JsonContent(
+     *             oneOf={
+     *                 @OA\Schema(
+     *                     type="object",
+     *                     @OA\Property(property="success", type="boolean", example=true),
+     *                     @OA\Property(property="user", ref="#/components/schemas/UserResource")
+     *                 ),
+     *                 @OA\Schema(
+     *                     type="object",
+     *                     @OA\Property(property="success", type="boolean", example=false),
+     *                     @OA\Property(property="error", type="string", example="Code OTP incorrect.")
+     *                 )
+     *             }
+     *         )
+     *     )
+     * )
+     */
     public function verifyOtp(VerifyOtpRequest $request)
     {
         Log::info("Je suis dans le controller verify");

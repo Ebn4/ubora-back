@@ -25,8 +25,8 @@
                 "tags": [
                     "Authentification"
                 ],
-                "summary": "Authentifier un utilisateur",
-                "description": "Permet de se connecter avec un CUID et un mot de passe. Retourne les informations de l'utilisateur et un token d'authentification (ex: JWT dans UserResource).",
+                "summary": "Authentifier un utilisateur et initier l'OTP",
+                "description": "Permet de se connecter avec un CUID et un mot de passe. En cas de succès, un code OTP est envoyé par email ou SMS. La réponse est toujours en 200, avec un champ 'success' indiquant le statut.",
                 "operationId": "login",
                 "requestBody": {
                     "required": true,
@@ -41,7 +41,7 @@
                                     "cuid": {
                                         "description": "Identifiant unique de l'utilisateur",
                                         "type": "string",
-                                        "example": "AB12345"
+                                        "example": "BNJK2032"
                                     },
                                     "password": {
                                         "description": "Mot de passe de l'utilisateur",
@@ -57,32 +57,54 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Authentification réussie",
+                        "description": "Réponse structurée (succès ou échec métier)",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "properties": {
-                                        "token": {
-                                            "type": "string"
+                                    "oneOf": [
+                                        {
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "data": {
+                                                    "$ref": "#/components/schemas/LoginSuccessResponse"
+                                                }
+                                            },
+                                            "type": "object"
                                         },
-                                        "user": {
-                                            "$ref": "#/components/schemas/UserResource"
+                                        {
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean",
+                                                    "example": false
+                                                },
+                                                "error": {
+                                                    "type": "string",
+                                                    "example": "Cuid ou mot de passe incorrect."
+                                                }
+                                            },
+                                            "type": "object"
                                         }
-                                    },
-                                    "type": "object"
+                                    ]
                                 }
                             }
                         }
                     },
-                    "400": {
-                        "description": "Erreur d'authentification (CUID invalide, mot de passe incorrect, utilisateur désactivé, etc.)",
+                    "500": {
+                        "description": "Erreur technique imprévue (LDAP injoignable, timeout, etc.)",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
-                                        "errors": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "error": {
                                             "type": "string",
-                                            "example": "Invalid credentials."
+                                            "example": "Service temporairement indisponible. Veuillez réessayer plus tard."
                                         }
                                     },
                                     "type": "object"
@@ -127,6 +149,147 @@
                         "bearerAuth": []
                     }
                 ]
+            }
+        },
+        "/api/resend-otp": {
+            "post": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Renvoyer un nouveau code OTP",
+                "description": "Renvoie un nouveau code OTP pour le CUID fourni (doit être dans la session active).",
+                "operationId": "resendOtp",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "cuid"
+                                ],
+                                "properties": {
+                                    "cuid": {
+                                        "type": "string",
+                                        "example": "DNHG8720"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Succès ou échec",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "Un nouveau code a été envoyé via email."
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean",
+                                                    "example": false
+                                                },
+                                                "error": {
+                                                    "type": "string",
+                                                    "example": "Session expirée. Veuillez vous reconnecter."
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/verify-otp": {
+            "post": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Vérifier le code OTP et finaliser la connexion",
+                "description": "Valide le code OTP fourni et retourne les données utilisateur + token en cas de succès.",
+                "operationId": "verifyOtp",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "cuid",
+                                    "otp"
+                                ],
+                                "properties": {
+                                    "cuid": {
+                                        "type": "string",
+                                        "example": "DHJS3256"
+                                    },
+                                    "otp": {
+                                        "description": "Code OTP à 6 chiffres",
+                                        "type": "string",
+                                        "example": "123456"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Succès ou échec de vérification",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "user": {
+                                                    "$ref": "#/components/schemas/UserResource"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean",
+                                                    "example": false
+                                                },
+                                                "error": {
+                                                    "type": "string",
+                                                    "example": "Code OTP incorrect."
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/uploadCandidacies": {
@@ -1850,6 +2013,10 @@
                                         "format": "email",
                                         "example": "admin@example.com"
                                     },
+                                    "profil": {
+                                        "type": "string",
+                                        "example": "Administrator"
+                                    },
                                     "password": {
                                         "type": "string",
                                         "format": "password",
@@ -1910,6 +2077,35 @@
     },
     "components": {
         "schemas": {
+            "LoginSuccessResponse": {
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "example": "otp_sent"
+                    },
+                    "cuid": {
+                        "type": "string",
+                        "example": "DNZL9763"
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Un code de vérification a été envoyé à votre adresse e-mail."
+                    },
+                    "transaction_id": {
+                        "type": "string",
+                        "example": "b6f603d6-9ec0-4d07-83f1-e446286ad183"
+                    },
+                    "channel": {
+                        "type": "string",
+                        "example": "email"
+                    },
+                    "reference_masked": {
+                        "type": "string",
+                        "example": "exmple.ext@orange.com"
+                    }
+                },
+                "type": "object"
+            },
             "CandidacyResource": {
                 "title": "Candidacy Resource",
                 "description": "Ressource de candidature formatée",
