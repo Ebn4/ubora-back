@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'mail_api' => [
+        'url' => env('MAIL_API_URL', 'http://10.25.2.104:3010/mail'),
+    ],
+
+
 ];
