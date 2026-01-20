@@ -19,6 +19,8 @@ use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Log;
+
 
 class EvaluatorController extends Controller
 {
@@ -181,100 +183,204 @@ class EvaluatorController extends Controller
         return CandidacyResource::collection($candidacies);
     }
 
-    public function isSelectorEvaluator(Request $request): JsonResponse
+      public function isSelectorEvaluator(Request $request): JsonResponse
     {
         try {
             $userId = auth()->user()->id;
-
-            if ($request->has('periodId') && $request->input('periodId') != null) {
-                $periodId = $request->input('periodId');
-
+            $user = auth()->user();
+            Log::info("L'utilisateur connecté : $user et son id : $userId");
+            // Étape 1: Si periodId fourni, l'utiliser
+            if ($request->has('periodId') && $request->periodId) {
+                Log::info("PeriodeId est là");
                 $evaluators = Evaluator::query()
                     ->where('type', EvaluatorTypeEnum::EVALUATOR_SELECTION->value)
                     ->where('user_id', $userId)
-                    ->where('period_id', $periodId)
+                    ->where('period_id', $request->periodId)
                     ->exists();
 
+                Log::info("Evaluateur trouvé : $evaluators");
+
                 return response()->json([
-                    "isSelectorEvaluator" => $evaluators
+                    "success" => true,
+                    "isSelectorEvaluator" => $evaluators,
+                    "periodId" => $request->periodId,
+                    "usedProvidedPeriod" => true
                 ]);
             }
 
-            $currentPeriod = Period::where('year', Carbon::now()->year)->first();
+            Log::info("On passe à l'etape 2");
+            // Étape 2: Trouver TOUTES les périodes où l'utilisateur est évaluateur de sélection
+            $evaluatorPeriods = Evaluator::query()
+                ->where('type', EvaluatorTypeEnum::EVALUATOR_SELECTION->value)
+                ->where('user_id', $userId)
+                ->with('period')
+                ->get()
+                ->pluck('period')
+                ->filter()
+                ->sortByDesc('year')
+                ->values();
 
-            if (!$currentPeriod) {
-                // Fallback : dernière période créée
-                $currentPeriod = Period::orderBy('year', 'desc')->first();
-            }
-
-            if ($currentPeriod) {
-                $evaluators = Evaluator::query()
-                    ->where('type', EvaluatorTypeEnum::EVALUATOR_SELECTION->value)
-                    ->where('user_id', $userId)
-                    ->where('period_id', $currentPeriod->id)
-                    ->exists();
+            if ($evaluatorPeriods->isNotEmpty()) {
+                // Prendre la période la plus récente
+                $latestPeriod = $evaluatorPeriods->first();
 
                 return response()->json([
-                    "isSelectorEvaluator" => $evaluators
+                    "success" => true,
+                    "isSelectorEvaluator" => true,
+                    "periodId" => $latestPeriod->id,
+                    "periodName" => $latestPeriod->year,
+                    "periodYear" => $latestPeriod->year,
+                    "availablePeriods" => $evaluatorPeriods->map(function($period) {
+                        return [
+                            'id' => $period->id,
+                            'year' => $period->year,
+                            'name' => $period->name,
+                            'status' => $period->status
+                        ];
+                    }),
+                    "usedLatestPeriod" => true,
+                    "message" => "Évaluateur de sélection trouvé pour la période " . $latestPeriod->year
                 ]);
             }
 
-            // Aucune période n'existe
+            // Étape 3: Aucune période trouvée
             return response()->json([
-                "isSelectorEvaluator" => false
+                "success" => true,
+                "isSelectorEvaluator" => false,
+                "availablePeriods" => [],
+                "message" => "Vous n'êtes pas évaluateur de sélection"
             ]);
+
         } catch (\Throwable $th) {
-            return response()->json([
-                "isSelectorEvaluator" => false
+            \Log::error('Erreur isSelectorEvaluator', [
+                'error' => $th->getMessage(),
+                'trace' => $th->getTraceAsString()
             ]);
+
+            return response()->json([
+                "success" => false,
+                "isSelectorEvaluator" => false,
+                "message" => "Une erreur est survenue lors de la vérification"
+            ], 500);
         }
     }
 
+    /**
+     * Vérifie si l'utilisateur est évaluateur de présélection
+     * Accepte un periodId optionnel, sinon trouve la période appropriée
+     */
     public function isPreselectorEvaluator(Request $request): JsonResponse
     {
         try {
             $userId = auth()->user()->id;
-
-            if ($request->has('periodId') && $request->input('periodId') != null) {
-                $periodId = $request->input('periodId');
-
+            $user = auth()->user();
+            Log::info("L'utilisateur connecté : $user");
+            // Étape 1: Si periodId fourni, l'utiliser
+            if ($request->has('periodId') && $request->periodId) {
+                Log::info("PeriodeId est là");
                 $evaluators = Evaluator::query()
                     ->where('type', EvaluatorTypeEnum::EVALUATOR_PRESELECTION->value)
                     ->where('user_id', $userId)
-                    ->where('period_id', $periodId)
+                    ->where('period_id', $request->periodId)
                     ->exists();
+                
+                Log::info("Evaluateurs trouvé : $evaluators");
 
                 return response()->json([
-                    "isPreselectorEvaluator" => $evaluators
+                    "success" => true,
+                    "isPreselectorEvaluator" => $evaluators,
+                    "periodId" => $request->periodId,
+                    "usedProvidedPeriod" => true
                 ]);
             }
 
-            $currentPeriod = Period::where('year', Carbon::now()->year)->first();
+            // Étape 2: Trouver TOUTES les périodes où l'utilisateur est évaluateur de présélection
+            $evaluatorPeriods = Evaluator::query()
+                ->where('type', EvaluatorTypeEnum::EVALUATOR_PRESELECTION->value)
+                ->where('user_id', $userId)
+                ->with('period')
+                ->get()
+                ->pluck('period')
+                ->filter()
+                ->sortByDesc('year')
+                ->values();
 
-            if (!$currentPeriod) {
-                $currentPeriod = Period::orderBy('year', 'desc')->first();
-            }
-
-            if ($currentPeriod) {
-                $evaluators = Evaluator::query()
-                    ->where('type', EvaluatorTypeEnum::EVALUATOR_PRESELECTION->value)
-                    ->where('user_id', $userId)
-                    ->where('period_id', $currentPeriod->id)
-                    ->exists();
+            if ($evaluatorPeriods->isNotEmpty()) {
+                // Prendre la période la plus récente
+                $latestPeriod = $evaluatorPeriods->first();
 
                 return response()->json([
-                    "isPreselectorEvaluator" => $evaluators
+                    "success" => true,
+                    "isPreselectorEvaluator" => true,
+                    "periodId" => $latestPeriod->id,
+                    "periodName" => $latestPeriod->year,
+                    "periodYear" => $latestPeriod->year,
+                    "availablePeriods" => $evaluatorPeriods->map(function($period) {
+                        return [
+                            'id' => $period->id,
+                            'year' => $period->year,
+                            'name' => $period->name,
+                            'status' => $period->status
+                        ];
+                    }),
+                    "usedLatestPeriod" => true,
+                    "message" => "Évaluateur de présélection trouvé pour la période " . $latestPeriod->year
                 ]);
             }
 
-            // Aucune période n'existe
+            // Étape 3: Aucune période trouvée
             return response()->json([
-                "isPreselectorEvaluator" => false
+                "success" => true,
+                "isPreselectorEvaluator" => false,
+                "availablePeriods" => [],
+                "message" => "Vous n'êtes pas évaluateur de présélection"
             ]);
+
         } catch (\Throwable $th) {
-            return response()->json([
-                "isPreselectorEvaluator" => false
+            \Log::error('Erreur isPreselectorEvaluator', [
+                'error' => $th->getMessage(),
+                'trace' => $th->getTraceAsString()
             ]);
+
+            return response()->json([
+                "success" => false,
+                "isPreselectorEvaluator" => false,
+                "message" => "Une erreur est survenue lors de la vérification"
+            ], 500);
+        }
+    }
+
+    /**
+     * Récupère toutes les périodes où l'utilisateur est évaluateur
+     * (Pour le sélecteur de période dans le frontend)
+     */
+    public function getEvaluatorPeriods(Request $request): JsonResponse
+    {
+        try {
+            $userId = auth()->user()->id;
+
+            $periods = Period::whereHas('evaluators', function($query) use ($userId) {
+                $query->where('user_id', $userId);
+            })
+            ->orderBy('year', 'desc')
+            ->get(['id', 'year', 'name', 'status', 'created_at']);
+
+            return response()->json([
+                "success" => true,
+                "periods" => $periods,
+                "count" => $periods->count()
+            ]);
+
+        } catch (\Throwable $th) {
+            \Log::error('Erreur getEvaluatorPeriods', [
+                'error' => $th->getMessage()
+            ]);
+
+            return response()->json([
+                "success" => false,
+                "periods" => [],
+                "message" => "Une erreur est survenue"
+            ], 500);
         }
     }
 }
