@@ -659,9 +659,16 @@ class CandidacyController extends Controller
             }
 
             $perPage = $request->input('per_page', 5);
-            $paginated = $query->paginate($perPage);
 
-            return CandidacyResource::collection($paginated);
+            if($perPage){
+                $candidacies = $query->get();
+                return CandidacyResource::collection($candidacies);
+            }else{
+                $paginated = $query->paginate($perPage);
+                return CandidacyResource::collection($paginated);
+            }
+
+
         } catch (\Throwable $th) {
             Log::error($th);
             return response()->json([
@@ -763,9 +770,14 @@ class CandidacyController extends Controller
             }
 
             $perPage = $request->input('per_page', 5);
-            $paginated = $query->paginate($perPage);
+            if($perPage == 'all'){
+                $candidacies = $query->get();
+                return CandidacyResource::collection($candidacies);
+            }else{
+                $paginated = $query->paginate($perPage);
+                return CandidacyResource::collection($paginated);
+            }
 
-            return CandidacyResource::collection($paginated);
         } catch (\Throwable $th) {
             Log::error($th);
             return response()->json([
@@ -1515,29 +1527,29 @@ class CandidacyController extends Controller
         $contentLength = $request->header('Content-Length') ? (int)$request->header('Content-Length') : 0;
         $uploadMaxSize = $this->parseSize(ini_get('upload_max_filesize'));
 
-        if ($contentLength > $uploadMaxSize) {
-            Log::error('ZIP file upload failed: File too large for current PHP settings', [
-                'content_length' => $contentLength,
-                'upload_max_filesize' => ini_get('upload_max_filesize'),
-                'post_max_size' => ini_get('post_max_size')
-            ]);
+        // if ($contentLength > $uploadMaxSize) {
+        //     Log::error('ZIP file upload failed: File too large for current PHP settings', [
+        //         'content_length' => $contentLength,
+        //         'upload_max_filesize' => ini_get('upload_max_filesize'),
+        //         'post_max_size' => ini_get('post_max_size')
+        //     ]);
 
-            return response()->json([
-                'errors' => [
-                    'zip_file' => [
-                        'File size (' . round($contentLength / 1024 / 1024, 2) . 'MB) exceeds server limit (' . ini_get('upload_max_filesize') . '). ' .
-                        'Please contact administrator to increase upload limits or compress your file.'
-                    ]
-                ],
-                'message' => 'File upload failed due to server configuration limits.',
-                'server_limits' => [
-                    'upload_max_filesize' => ini_get('upload_max_filesize'),
-                    'post_max_size' => ini_get('post_max_size'),
-                    'content_length' => $contentLength,
-                    'file_size_mb' => round($contentLength / 1024 / 1024, 2)
-                ]
-            ], 422);
-        }
+        //     return response()->json([
+        //         'errors' => [
+        //             'zip_file' => [
+        //                 'File size (' . round($contentLength / 1024 / 1024, 2) . 'MB) exceeds server limit (' . ini_get('upload_max_filesize') . '). ' .
+        //                 'Please contact administrator to increase upload limits or compress your file.'
+        //             ]
+        //         ],
+        //         'message' => 'File upload failed due to server configuration limits.',
+        //         'server_limits' => [
+        //             'upload_max_filesize' => ini_get('upload_max_filesize'),
+        //             'post_max_size' => ini_get('post_max_size'),
+        //             'content_length' => $contentLength,
+        //             'file_size_mb' => round($contentLength / 1024 / 1024, 2)
+        //         ]
+        //     ], 422);
+        // }
 
         try {
             // Validate the request with more specific rules
@@ -1546,7 +1558,7 @@ class CandidacyController extends Controller
                     'required',
                     'file',
                     'mimes:zip',
-                    'max:10240', // 10MB in kilobytes (10 * 1024)
+                    'max:2097152', // 10MB in kilobytes (10 * 1024)
                 ],
             ], [
                 'zip_file.max' => 'The ZIP file size must not exceed 10MB.',
