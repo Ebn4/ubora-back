@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use App\Services\EvaluatorNotificationService;
 use App\Enums\EvaluatorTypeEnum;
 use App\Enums\PeriodStatusEnum;
 use App\Http\Requests\DispatchRequest;
@@ -16,6 +16,9 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use App\Http\Requests\NotifyRequest;
 
 class DispatchController extends Controller
 {
@@ -34,7 +37,7 @@ class DispatchController extends Controller
         ]);
     }
 
-    public function dispatchPreselection(DispatchRequest $request): JsonResponse
+    public function dispatchPreselection(DispatchRequest $request,EvaluatorNotificationService $notificationService): JsonResponse
     {
 
         $periodId = $request->post("periodId");
@@ -77,10 +80,57 @@ class DispatchController extends Controller
             $candidacy->dispatch()->toggle($evaluatorsIds);
         }
 
+        // $notificationService->notifyPreselectionEvaluators($evaluators, $evaluatorsDispatch, $period);
         return response()->json([
             "message" => "Le dispatch de la présélection a été effectué avec succès."
         ]);
     }
+
+    public function notifyPreselectionEvaluators(NotifyRequest $request, EvaluatorNotificationService $notificationService): JsonResponse
+    {
+        Log::info("Je suis dans le controller");
+        $periodId = $request->post('periodId');
+        $period = Period::findOrFail($periodId);
+        Log::info("periodId reçu : " . $request->post('periodId'));
+        
+        Log::info("le statut de la periode : $period->status");
+        if ($period->status !== PeriodStatusEnum::STATUS_DISPATCH->value) {
+            return response()->json(['error' => 'Impossible d’envoyer les notifications : le dispatch n’est pas actif.'], 400);
+        }
+
+        // Vérifier qu’il y a bien des dispatchs
+        $dispatches = DB::table('dispatch_preselections')
+            ->join('candidats', 'dispatch_preselections.candidacy_id', '=', 'candidats.id')
+            ->where('candidats.period_id', $periodId)
+            ->exists();
+        
+        Log::info("Les dispatchs  : $dispatches");
+
+        if (!$dispatches) {
+            return response()->json(['error' => 'Aucun dispatch trouvé pour cette période.'], 400);
+        }
+
+        // Récupérer les données nécessaires
+        $candidacies = Candidacy::where('period_id', $periodId)->where('is_allowed', true)->get();
+        $evaluators = Evaluator::where('period_id', $periodId)
+            ->where('type', EvaluatorTypeEnum::EVALUATOR_PRESELECTION->value)
+            ->get();
+
+        // Reconstituer $evaluatorsDispatch (ou stockez-le en cache/session si possible)
+        $evaluatorsDispatch = [];
+        foreach ($candidacies as $candidacy) {
+            $evals = DB::table('dispatch_preselections')
+                ->where('candidacy_id', $candidacy->id)
+                ->pluck('evaluator_id')
+                ->toArray();
+            $evaluatorsDispatch[$candidacy->id] = $evals;
+        }
+
+        $notificationService->notifyPreselectionEvaluators($evaluators, $evaluatorsDispatch, $period);
+
+        return response()->json(['message' => 'Les notifications ont été envoyées avec succès.']);
+    }
+
 
         public function CandidaciesDispatchByEvaluator(Request $request)
     {
