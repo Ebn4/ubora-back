@@ -660,7 +660,7 @@ class CandidacyController extends Controller
 
             $perPage = $request->input('per_page', 5);
 
-            if($perPage){
+            if($perPage == 'all'){
                 $candidacies = $query->get();
                 return CandidacyResource::collection($candidacies);
             }else{
