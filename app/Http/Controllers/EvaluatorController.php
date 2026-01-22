@@ -82,13 +82,13 @@ class EvaluatorController extends Controller
                 throw new \Exception("Vous n'avez plus le droit d'ajouter un evaluateur pour cette periode.");
             }
 
-            $ldapUser = $this->userLdapService->findUserByCuid($request->cuid);
 
-            $exists = User::where('email', $ldapUser->email)->exists();
+            $exists = User::where('email', $request->email)->exists();
+            Log::info("L'utilisateur trouvé $exists");
             if ($exists) {
-                $user = User::where('email', $ldapUser->email)->first();
+                $user = User::where('email', $request->email)->first();
             } else {
-                $user = $this->userService->create($ldapUser->email, $ldapUser->cuid, "evaluator", $ldapUser->name);
+                $user = $this->userService->create($request->email, $request->cuid, "evaluator", $request->name);
             }
 
             $evaluator = Evaluator::query()
@@ -189,7 +189,7 @@ class EvaluatorController extends Controller
             $userId = auth()->user()->id;
             $user = auth()->user();
             Log::info("L'utilisateur connecté : $user et son id : $userId");
-            // Étape 1: Si periodId fourni, l'utiliser
+            // Si periodId fourni, l'utiliser
             if ($request->has('periodId') && $request->periodId) {
                 Log::info("PeriodeId est là");
                 $evaluators = Evaluator::query()
@@ -209,7 +209,7 @@ class EvaluatorController extends Controller
             }
 
             Log::info("On passe à l'etape 2");
-            // Étape 2: Trouver TOUTES les périodes où l'utilisateur est évaluateur de sélection
+            // Trouver TOUTES les périodes où l'utilisateur est évaluateur de sélection
             $evaluatorPeriods = Evaluator::query()
                 ->where('type', EvaluatorTypeEnum::EVALUATOR_SELECTION->value)
                 ->where('user_id', $userId)
@@ -243,7 +243,7 @@ class EvaluatorController extends Controller
                 ]);
             }
 
-            // Étape 3: Aucune période trouvée
+            // Aucune période trouvée
             return response()->json([
                 "success" => true,
                 "isSelectorEvaluator" => false,
@@ -275,7 +275,7 @@ class EvaluatorController extends Controller
             $userId = auth()->user()->id;
             $user = auth()->user();
             Log::info("L'utilisateur connecté : $user");
-            // Étape 1: Si periodId fourni, l'utiliser
+            // Si periodId fourni, l'utiliser
             if ($request->has('periodId') && $request->periodId) {
                 Log::info("PeriodeId est là");
                 $evaluators = Evaluator::query()
@@ -294,7 +294,7 @@ class EvaluatorController extends Controller
                 ]);
             }
 
-            // Étape 2: Trouver TOUTES les périodes où l'utilisateur est évaluateur de présélection
+            // Trouver TOUTES les périodes où l'utilisateur est évaluateur de présélection
             $evaluatorPeriods = Evaluator::query()
                 ->where('type', EvaluatorTypeEnum::EVALUATOR_PRESELECTION->value)
                 ->where('user_id', $userId)
@@ -328,7 +328,7 @@ class EvaluatorController extends Controller
                 ]);
             }
 
-            // Étape 3: Aucune période trouvée
+            // Aucune période trouvée
             return response()->json([
                 "success" => true,
                 "isPreselectorEvaluator" => false,

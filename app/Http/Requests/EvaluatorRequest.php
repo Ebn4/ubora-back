@@ -26,7 +26,8 @@ class EvaluatorRequest extends FormRequest
     public function rules(): array
     {
         return [
-            "cuid" => ["required", "string"],
+            "email" => ["required", "email"],
+            "name" => ["required",'string'],
             "periodId" => ["required", "integer", "exists:periods,id"],
             "type" => ["required", "string", new Enum(EvaluatorTypeEnum::class)],
         ];
