@@ -40,4 +40,8 @@ return [
     ],
 
 
+
+    'ldap_search' => [
+        'url' => env('LDAP_SEARCH_API_URL',"http://10.25.3.199:9000"),
+    ],
 ];

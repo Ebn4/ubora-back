@@ -12,13 +12,17 @@ class LdapUserResource extends JsonResource
      *
      * @return array<string, mixed>
      */
-    public function toArray(Request $request): array
+    public function toArray($request): array
     {
+        $username = $this->username ?? ($this->resource['username'] ?? null);
+        $email = $this->email ?? ($this->resource['email'] ?? null);
+        $displayName = $this->displayName ?? ($this->resource['displayName'] ?? null);
+        $cn = $this->cn ?? ($this->resource['cn'] ?? null);
+
         return [
-            "id" => $this->id,
-            "email" => $this->email,
-            "name" => $this->name,
-            "cuid" => $this->cuid
+            'email' => $email,
+            'name' => $displayName ?: $cn ?: 'Inconnu', 
+            'cuid' => $username,                        
         ];
     }
 }

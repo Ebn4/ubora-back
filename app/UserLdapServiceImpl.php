@@ -13,12 +13,14 @@ class UserLdapServiceImpl implements \App\Services\UserLdapService
     private string $ldapApiUrl;
     private string $otpApiUrl;
     private array $otpConfig;
+    private string $searchUserApiUrl;
 
     public function __construct()
     {
         $this->ldapApiUrl = config('ldap.ldap.api_url');
         $this->otpApiUrl = config('ldap.otp.api_url');
         $this->otpConfig = config('ldap.otp.config');
+        $this->searchUserApiUrl = config('services.ldap_search.url');
     }
 
     /**
@@ -281,13 +283,39 @@ class UserLdapServiceImpl implements \App\Services\UserLdapService
 
 
 
-    public function searchUser(string $search){
-        return DB::table('ldap')
-            ->where('email',$search)
-            ->orWhere("cuid",'LIKE',"%$search%")
-            ->orWhere('name','LIKE',"%$search%")
-            ->get();
+    public function searchUser(string $search)
+    {
+        Log::info('LDAP search value', ['search' => $search]);
+
+        if (empty($this->searchUserApiUrl)) {
+            throw new \Exception('searchUserApiUrl non défini');
+        }
+
+        $response = Http::get("{$this->searchUserApiUrl}/users/search", [
+            'q' => $search
+        ]);
+
+        Log::info('LDAP response', [
+            'status' => $response->status(),
+            'body'   => $response->body(),
+        ]);
+
+        if (!$response->successful()) {
+            return []; // renvoyer un tableau vide
+        }
+
+        $data = json_decode($response->body(), true);
+
+        if ($data === null) {
+            return []; // ou throw une exception si tu veux
+        }
+
+        $items = $data['items'] ?? [];
+
+        return $items;
     }
+
+
 
 
     public function findUserByCuid(string $cuid)
