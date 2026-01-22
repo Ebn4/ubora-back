@@ -9,7 +9,7 @@
 <p>Bonjour <strong>{{ $evaluatorName }}</strong>,</p>
 
 <p>
-    Vous avez été désigné(e) comme <strong>{{ $roleLabel }}</strong> dans le cadre de la
+    Vous avez été désigné(e) comme <strong>{{ $roleLabel }}</strong> pour les phases 
     <strong>Bourse UBORA – Orange RDC</strong> (édition {{ $periodLabel }}).
 </p>
 
