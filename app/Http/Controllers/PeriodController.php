@@ -572,4 +572,61 @@ class PeriodController extends Controller
             ]
         ]);
     }
+
+    /**
+     * @OA\Delete(
+     *     path="/api/periods/{year}",
+     *     summary="Supprimer une période par année",
+     *     description="Supprime une période en fonction de l'année fournie",
+     *     tags={"Périodes"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="year",
+     *         in="path",
+     *         required=true,
+     *         description="Année de la période à supprimer",
+     *         @OA\Schema(
+     *             type="integer",
+     *             example=2024
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Période supprimée avec succès",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Période 2024 supprimée avec succès")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="Période non trouvée",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Aucune période trouvée pour 2024")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Non authentifié"
+     *     )
+     * )
+     */
+    public function delete(int $year)
+    {
+        $deleted = Period::where('year', $year)->delete();
+
+        if ($deleted === 0) {
+            return response()->json([
+                'message' => "Aucune période trouvée pour {$year}"
+            ], 404);
+        }
+
+        return response()->json([
+            'message' => "Période {$year} supprimée avec succès"
+        ]);
+    }
+
 }

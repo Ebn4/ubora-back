@@ -85,5 +85,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('periods/{id}/has-evaluators', [PeriodController::class, 'hasEvaluators']);
         Route::post('periods/attach-criteria/{id}', [CriteriaController::class, 'attachCriteriaToPeriod']);
+        Route::delete('/periods/{year}', [PeriodController::class, 'delete']);
     });
 });

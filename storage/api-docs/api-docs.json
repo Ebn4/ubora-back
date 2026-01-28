@@ -1756,6 +1756,70 @@
                 }
             }
         },
+        "/api/periods/{year}": {
+            "delete": {
+                "tags": [
+                    "Périodes"
+                ],
+                "summary": "Supprimer une période par année",
+                "description": "Supprime une période en fonction de l'année fournie",
+                "operationId": "90d2ec8c44e7da81269c93e8eb375f28",
+                "parameters": [
+                    {
+                        "name": "year",
+                        "in": "path",
+                        "description": "Année de la période à supprimer",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 2024
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Période supprimée avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Période 2024 supprimée avec succès"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Période non trouvée",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Aucune période trouvée pour 2024"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/users": {
             "get": {
                 "tags": [
