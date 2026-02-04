@@ -21,7 +21,12 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Log;
 
-
+/**
+ * @OA\Tag(
+ *     name="Évaluateurs",
+ *     description="Opérations sur les évaluateurs"
+ * )
+ */
 class EvaluatorController extends Controller
 {
     public function __construct(
@@ -33,7 +38,67 @@ class EvaluatorController extends Controller
     }
 
     /**
-     * Display a listing of the resource.
+     * @OA\Get(
+     *     path="/api/evaluators",
+     *     summary="Lister tous les évaluateurs",
+     *     description="Récupère la liste paginée des évaluateurs avec des options de filtrage",
+     *     tags={"Évaluateurs"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="periodId",
+     *         in="query",
+     *         description="ID de la période pour filtrer les évaluateurs",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Parameter(
+     *         name="search",
+     *         in="query",
+     *         description="Terme de recherche pour filtrer par nom ou email de l'utilisateur",
+     *         required=false,
+     *         @OA\Schema(type="string", example="john")
+     *     ),
+     *     @OA\Parameter(
+     *         name="type",
+     *         in="query",
+     *         description="Type d'évaluateur pour filtrer (SELECTION ou PRESELECTION)",
+     *         required=false,
+     *         @OA\Schema(type="string", enum={"SELECTION", "PRESELECTION"}, example="SELECTION")
+     *     ),
+     *     @OA\Parameter(
+     *         name="perPage",
+     *         in="query",
+     *         description="Nombre d'éléments par page",
+     *         required=false,
+     *         @OA\Schema(type="integer", default=10, example=15)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Liste des évaluateurs récupérée avec succès",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="data", type="array", @OA\Items(
+     *                 type="object",
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="type", type="string", example="SELECTION"),
+     *                 @OA\Property(property="user", type="object",
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="name", type="string", example="John Doe"),
+     *                     @OA\Property(property="email", type="string", example="john.doe@ubora.com")
+     *                 ),
+     *                 @OA\Property(property="period", type="object",
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="name", type="string", example="Période 2024"),
+     *                     @OA\Property(property="year", type="integer", example=2024)
+     *                 )
+     *             )),
+     *             @OA\Property(property="current_page", type="integer", example=1),
+     *             @OA\Property(property="last_page", type="integer", example=5),
+     *             @OA\Property(property="per_page", type="integer", example=10),
+     *             @OA\Property(property="total", type="integer", example=50)
+     *         )
+     *     )
+     * )
      */
     public function index(Request $request): AnonymousResourceCollection
     {
@@ -70,7 +135,44 @@ class EvaluatorController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * @OA\Post(
+     *     path="/api/evaluators",
+     *     summary="Créer un nouvel évaluateur",
+     *     description="Ajoute un utilisateur en tant qu'évaluateur pour une période spécifique",
+     *     tags={"Évaluateurs"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         description="Données de l'évaluateur à créer",
+     *         @OA\JsonContent(
+     *             required={"email", "type", "periodId"},
+     *             @OA\Property(property="email", type="string", format="email", description="Email de l'évaluateur", example="john.doe@ubora.com"),
+     *             @OA\Property(property="name", type="string", description="Nom de l'évaluateur", example="John Doe"),
+     *             @OA\Property(property="cuid", type="string", description="Identifiant unique de l'utilisateur", example="JD123456"),
+     *             @OA\Property(property="type", type="string", enum={"SELECTION", "PRESELECTION"}, description="Type d'évaluateur", example="SELECTION"),
+     *             @OA\Property(property="periodId", type="integer", description="ID de la période", example=1)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Évaluateur créé avec succès"
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Erreur lors de la création de l'évaluateur",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="errors", type="string", example="L'utilisateur est déjà enregistré en tant qu'évaluateur pour l'épreuve de SELECTION.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Erreur de validation des données",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The email field is required."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     )
+     * )
      */
     public function store(EvaluatorRequest $request): void
     {
@@ -123,7 +225,50 @@ class EvaluatorController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * @OA\Get(
+     *     path="/api/evaluators/{id}",
+     *     summary="Afficher un évaluateur spécifique",
+     *     description="Récupère les détails d'un évaluateur par son ID avec ses candidatures",
+     *     tags={"Évaluateurs"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         description="ID de l'évaluateur",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Évaluateur récupéré avec succès",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="id", type="integer", example=1),
+     *             @OA\Property(property="type", type="string", example="SELECTION"),
+     *             @OA\Property(property="user", type="object",
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="name", type="string", example="John Doe"),
+     *                 @OA\Property(property="email", type="string", example="john.doe@ubora.com")
+     *             ),
+     *             @OA\Property(property="period", type="object",
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="name", type="string", example="Période 2024"),
+     *                 @OA\Property(property="year", type="integer", example=2024)
+     *             ),
+     *             @OA\Property(property="candidacies", type="array", @OA\Items(
+     *                 type="object",
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="name", type="string", example="Candidature 1")
+     *             ))
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Évaluateur non trouvé",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Not Found")
+     *         )
+     *     )
+     * )
      */
     public function show(string $id): EvaluatorRessource
     {
@@ -141,8 +286,39 @@ class EvaluatorController extends Controller
         //
     }
 
-    /**
-     * Remove the specified resource from storage.
+     /**
+     * @OA\Delete(
+     *     path="/api/evaluators/{id}",
+     *     summary="Supprimer un évaluateur",
+     *     description="Supprime un évaluateur de la base de données (uniquement si la période est en statut DISPATCH)",
+     *     tags={"Évaluateurs"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         description="ID de l'évaluateur",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Évaluateur supprimé avec succès"
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Erreur lors de la suppression",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="errors", type="string", example="Vous n'avez pas le droit d'effacer cet evaluateur car le status de la periode est PRESELECTION.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Évaluateur non trouvé",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Not Found")
+     *         )
+     *     )
+     * )
      */
     public function destroy(string $id)
     {
@@ -164,6 +340,7 @@ class EvaluatorController extends Controller
         }
     }
 
+    
     public function evaluatorCandidacy(int $id): AnonymousResourceCollection
     {
         $candidacies = Evaluator::query()
@@ -173,17 +350,98 @@ class EvaluatorController extends Controller
         return EvaluatorCandidaciesResource::collection($candidacies->dispatch);
     }
 
-    public function getEvaluatorCandidacies(int $evaluatorId): AnonymousResourceCollection
+       /**
+     * @OA\Get(
+     *     path="/api/evaluators/{id}/candidacies",
+     *     summary="Récupérer les candidatures détaillées d'un évaluateur",
+     *     description="Récupère la liste détaillée des candidatures d'un évaluateur avec toutes les informations",
+     *     tags={"Évaluateurs"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         description="ID de l'évaluateur",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Candidatures récupérées avec succès",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(
+     *                 type="object",
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="name", type="string", example="Candidature 1"),
+     *                 @OA\Property(property="status", type="string", example="pending"),
+     *                 @OA\Property(property="created_at", type="string", format="date-time", example="2024-01-15T10:30:00Z")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Évaluateur non trouvé"
+     *     )
+     * )
+     */
+    public function getEvaluatorCandidacies(int $id): AnonymousResourceCollection
     {
         $candidacies = Evaluator::query()
             ->with("candidacies")
-            ->findOrFail($evaluatorId)
+            ->findOrFail($id)
             ->candidacies;
 
         return CandidacyResource::collection($candidacies);
     }
 
-      public function isSelectorEvaluator(Request $request): JsonResponse
+    
+    /**
+     * @OA\Get(
+     *     path="/api/evaluators/is-selector-evaluator",
+     *     summary="Vérifier si l'utilisateur est évaluateur de sélection",
+     *     description="Vérifie si l'utilisateur connecté est un évaluateur de sélection pour une période donnée ou la plus récente",
+     *     tags={"Évaluateurs"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="periodId",
+     *         in="query",
+     *         description="ID de la période (optionnel, si non fourni utilise la période la plus récente)",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Vérification effectuée avec succès",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="isSelectorEvaluator", type="boolean", example=true),
+     *             @OA\Property(property="periodId", type="integer", example=1, nullable=true),
+     *             @OA\Property(property="periodName", type="string", example="Période 2024", nullable=true),
+     *             @OA\Property(property="periodYear", type="integer", example=2024, nullable=true),
+     *             @OA\Property(property="usedProvidedPeriod", type="boolean", example=true, nullable=true),
+     *             @OA\Property(property="usedLatestPeriod", type="boolean", example=false, nullable=true),
+     *             @OA\Property(property="availablePeriods", type="array", @OA\Items(
+     *                 type="object",
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="year", type="integer", example=2024),
+     *                 @OA\Property(property="name", type="string", example="Période 2024"),
+     *                 @OA\Property(property="status", type="string", example="active")
+     *             ), nullable=true),
+     *             @OA\Property(property="message", type="string", example="Évaluateur de sélection trouvé pour la période 2024", nullable=true)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur lors de la vérification",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="isSelectorEvaluator", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Une erreur est survenue lors de la vérification")
+     *         )
+     *     )
+     * )
+     */
+    public function isSelectorEvaluator(Request $request): JsonResponse
     {
         try {
             $userId = auth()->user()->id;
@@ -266,8 +524,50 @@ class EvaluatorController extends Controller
     }
 
     /**
-     * Vérifie si l'utilisateur est évaluateur de présélection
-     * Accepte un periodId optionnel, sinon trouve la période appropriée
+     * @OA\Get(
+     *     path="/api/evaluators/is-preselector-evaluator",
+     *     summary="Vérifier si l'utilisateur est évaluateur de présélection",
+     *     description="Vérifie si l'utilisateur connecté est un évaluateur de présélection pour une période donnée ou la plus récente",
+     *     tags={"Évaluateurs"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="periodId",
+     *         in="query",
+     *         description="ID de la période (optionnel, si non fourni utilise la période la plus récente)",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Vérification effectuée avec succès",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="isPreselectorEvaluator", type="boolean", example=true),
+     *             @OA\Property(property="periodId", type="integer", example=1, nullable=true),
+     *             @OA\Property(property="periodName", type="string", example="Période 2024", nullable=true),
+     *             @OA\Property(property="periodYear", type="integer", example=2024, nullable=true),
+     *             @OA\Property(property="usedProvidedPeriod", type="boolean", example=true, nullable=true),
+     *             @OA\Property(property="usedLatestPeriod", type="boolean", example=false, nullable=true),
+     *             @OA\Property(property="availablePeriods", type="array", @OA\Items(
+     *                 type="object",
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="year", type="integer", example=2024),
+     *                 @OA\Property(property="name", type="string", example="Période 2024"),
+     *                 @OA\Property(property="status", type="string", example="active")
+     *             ), nullable=true),
+     *             @OA\Property(property="message", type="string", example="Évaluateur de présélection trouvé pour la période 2024", nullable=true)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur lors de la vérification",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="isPreselectorEvaluator", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Une erreur est survenue lors de la vérification")
+     *         )
+     *     )
+     * )
      */
     public function isPreselectorEvaluator(Request $request): JsonResponse
     {

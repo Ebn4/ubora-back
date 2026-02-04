@@ -21,7 +21,7 @@ class PeriodController extends Controller
 {
        /**
      * @OA\Get(
-     *     path="/api/periods",
+     *     path="/api/period",
      *     tags={"Périodes"},
      *     summary="Lister les périodes académiques",
      *     description="Récupère la liste paginée des périodes académiques avec possibilité de recherche et filtrage.",
@@ -128,7 +128,7 @@ class PeriodController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/api/periods",
+     *     path="/api/period",
      *     tags={"Périodes"},
      *     summary="Créer une nouvelle période académique",
      *     description="Crée une nouvelle période académique. Si aucune année n'est spécifiée, utilise l'année courante.",
@@ -205,7 +205,7 @@ class PeriodController extends Controller
 
      /**
      * @OA\Get(
-     *     path="/api/periods/{id}",
+     *     path="/api/period/{id}",
      *     tags={"Périodes"},
      *     summary="Obtenir les détails d'une période",
      *     description="Récupère les informations détaillées d'une période académique spécifique.",
@@ -502,6 +502,97 @@ class PeriodController extends Controller
         }
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/periods/{periodId}/state",
+     *     summary="Récupérer l'état détaillé d'une période",
+     *     description="Récupère l'état complet d'une période avec la liste paginée des évaluateurs, 
+     *         l'indicateur de dispatch et la présence d'évaluateurs.
+     *         Permet de filtrer par type d'évaluateur et de rechercher par nom/email.",
+     *     tags={"Périodes"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="periodId",
+     *         in="path",
+     *         description="ID de la période",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=34)
+     *     ),
+     *     @OA\Parameter(
+     *         name="page",
+     *         in="query",
+     *         description="Numéro de page pour la pagination",
+     *         required=false,
+     *         @OA\Schema(type="integer", minimum=1, default=1, example=1)
+     *     ),
+     *     @OA\Parameter(
+     *         name="perPage",
+     *         in="query",
+     *         description="Nombre d'évaluateurs par page",
+     *         required=false,
+     *         @OA\Schema(type="integer", minimum=1, maximum=100, default=10, example=10)
+     *     ),
+     *     @OA\Parameter(
+     *         name="search",
+     *         in="query",
+     *         description="Terme de recherche pour filtrer par nom ou email de l'évaluateur",
+     *         required=false,
+     *         @OA\Schema(type="string", example="john")
+     *     ),
+     *     @OA\Parameter(
+     *         name="type",
+     *         in="query",
+     *         description="Type d'évaluateur pour filtrer",
+     *         required=false,
+     *         @OA\Schema(type="string", enum={"SELECTION", "PRESELECTION"}, example="SELECTION")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="État de la période récupéré avec succès",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="evaluators", type="array",
+     *                     @OA\Items(
+     *                         type="object",
+     *                         @OA\Property(property="id", type="integer", example=1),
+     *                         @OA\Property(property="user_id", type="integer", example=5),
+     *                         @OA\Property(property="type", type="string", enum={"SELECTION", "PRESELECTION"}, example="SELECTION"),
+     *                         @OA\Property(property="period_id", type="integer", example=34),
+     *                         @OA\Property(property="name", type="string", example="John Doe"),
+     *                         @OA\Property(property="email", type="string", example="john.doe@ubora.com")
+     *                     )
+     *                 ),
+     *                 @OA\Property(property="isDispatched", type="boolean", description="Indique si le dispatch a été effectué pour cette période", example=true),
+     *                 @OA\Property(property="hasEvaluators", type="boolean", description="Indique si la période a au moins un évaluateur", example=true),
+     *                 @OA\Property(property="pagination", type="object",
+     *                     @OA\Property(property="current_page", type="integer", example=1),
+     *                     @OA\Property(property="last_page", type="integer", example=3),
+     *                     @OA\Property(property="per_page", type="integer", example=10),
+     *                     @OA\Property(property="total", type="integer", example=25),
+     *                     @OA\Property(property="from", type="integer", example=1),
+     *                     @OA\Property(property="to", type="integer", example=10)
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Erreur de validation des paramètres",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The perPage must not be greater than 100."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Période non trouvée",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Not Found")
+     *         )
+     *     )
+     * )
+     */
     public function getPeriodState($periodId, Request $request): JsonResponse
     {
         $request->validate([

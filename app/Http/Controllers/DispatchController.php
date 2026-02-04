@@ -20,14 +20,50 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Requests\NotifyRequest;
 
+/**
+ * @OA\Tag(
+ *     name="dispatch",
+ *     description="Opérations de dispatch des candidatures aux évaluateurs"
+ * )
+ */
 class DispatchController extends Controller
 {
 
-    public function hasEvaluatorBeenDispatched(int $periodId)
+      /**
+     * @OA\Get(
+     *     path="/api/evaluators/{period}/is-dispatched",
+     *     summary="Vérifier si un dispatch a été effectué",
+     *     description="Vérifie si des candidatures ont déjà été dispatchées pour une période donnée",
+     *     tags={"dispatch"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="period",
+     *         in="path",
+     *         description="ID de la période",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=34)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Vérification effectuée avec succès",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="isDispatch", type="boolean", example=true)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Période non trouvée",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Not Found")
+     *         )
+     *     )
+     * )
+     */
+    public function hasEvaluatorBeenDispatched(int $period)
     {
 
         $candidacies = Candidacy::query()
-            ->where("period_id", $periodId)
+            ->where("period_id", $period)
             ->whereHas("dispatch")
             ->exists();
 
@@ -37,6 +73,48 @@ class DispatchController extends Controller
         ]);
     }
 
+     /**
+     * @OA\Post(
+     *     path="/api/evaluators/{period}/dispatch",
+     *     summary="Effectuer le dispatch de présélection",
+     *     description="OPERATION IRREVERSIBLE : Dispatch automatique des candidatures aux évaluateurs de présélection.
+     *         - Répartit équitablement les candidatures (is_allowed=true) entre les évaluateurs PRESELECTION
+     *         - Chaque candidature est assignée à 2-3 évaluateurs selon le nombre total d'évaluateurs
+     *         - Ne peut être effectué qu'une seule fois par période (statut DISPATCH requis)
+     *         - Cette opération modifie définitivement les relations candidature-évaluateur",
+     *     tags={"dispatch"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         description="Période pour laquelle effectuer le dispatch",
+     *         @OA\JsonContent(
+     *             required={"periodId"},
+     *             @OA\Property(property="periodId", type="integer", description="ID de la période en statut DISPATCH", example=34)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Dispatch effectué avec succès",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Le dispatch de la présélection a été effectué avec succès.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Période non en statut DISPATCH",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="error", type="string", example="Vous n'avez plus le droit de dispatcher : la présélection a déjà commencé.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Période non trouvée",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Not Found")
+     *         )
+     *     )
+     * )
+     */
     public function dispatchPreselection(DispatchRequest $request,EvaluatorNotificationService $notificationService): JsonResponse
     {
 
@@ -86,6 +164,48 @@ class DispatchController extends Controller
         ]);
     }
 
+      /**
+     * @OA\Post(
+     *     path="/api/dispatch/notify-preselection-evaluators",
+     *     summary="Notifier les évaluateurs de présélection",
+     *     description="Envoie des notifications par email aux évaluateurs de présélection après le dispatch.
+     *          Prérequis :
+     *         - Période doit être en statut DISPATCH
+     *         - Le dispatch des candidatures doit avoir été effectué préalablement
+     *         - Les évaluateurs doivent avoir un email valide",
+     *     tags={"dispatch"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         description="Période pour laquelle envoyer les notifications",
+     *         @OA\JsonContent(
+     *             required={"periodId"},
+     *             @OA\Property(property="periodId", type="integer", description="ID de la période", example=34)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Notifications envoyées avec succès",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Les notifications ont été envoyées avec succès.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Conditions non remplies (statut ou dispatch absent)",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="error", type="string", example="Impossible d'envoyer les notifications : le dispatch n'est pas actif.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Période non trouvée",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Not Found")
+     *         )
+     *     )
+     * )
+     */
     public function notifyPreselectionEvaluators(NotifyRequest $request, EvaluatorNotificationService $notificationService): JsonResponse
     {
         Log::info("Je suis dans le controller");
@@ -132,7 +252,129 @@ class DispatchController extends Controller
     }
 
 
-        public function CandidaciesDispatchByEvaluator(Request $request)
+       /**
+     * @OA\Get(
+     *     path="/api/CandidaciesDispatchEvaluator",
+     *     summary="Récupérer les candidatures dispatchées à l'évaluateur connecté",
+     *     description="Récupère la liste paginée des candidatures assignées à l'évaluateur de présélection connecté pour une période donnée.
+     *         Deux cas de réponse 200 possibles :
+     *         1. Évaluateur assigné : Retourne les candidatures paginées ou complètes
+     *         2. Évaluateur non assigné : Retourne un message explicatif avec tableau vide",
+     *     tags={"dispatch"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="periodId",
+     *         in="query",
+     *         description="ID de la période",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=34)
+     *     ),
+     *     @OA\Parameter(
+     *         name="search",
+     *         in="query",
+     *         description="Terme de recherche (nom, prénom, postnom, ville)",
+     *         required=false,
+     *         @OA\Schema(type="string", example="Kinshasa")
+     *     ),
+     *     @OA\Parameter(
+     *         name="ville",
+     *         in="query",
+     *         description="Filtrer par ville",
+     *         required=false,
+     *         @OA\Schema(type="string", example="Kinshasa")
+     *     ),
+     *     @OA\Parameter(
+     *         name="per_page",
+     *         in="query",
+     *         description="Nombre de résultats par page (ou 'all' pour tout récupérer)",
+     *         required=false,
+     *         @OA\Schema(type="string", example="10")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Succès - Candidatures récupérées OU évaluateur non assigné",
+     *         @OA\JsonContent(
+     *             oneOf={
+     *                 @OA\Schema(
+     *                     type="object",
+     *                     description="Cas 1 : Évaluateur assigné - Réponse paginée",
+     *                     @OA\Property(
+     *                         property="data",
+     *                         type="array",
+     *                         @OA\Items(
+     *                             type="object",
+     *                             @OA\Property(property="id", type="integer", example=1),
+     *                             @OA\Property(property="etn_nom", type="string", example="MUTOMBO"),
+     *                             @OA\Property(property="etn_prenom", type="string", example="Jean"),
+     *                             @OA\Property(property="etn_postnom", type="string", example="KABONGO"),
+     *                             @OA\Property(property="ville", type="string", example="Kinshasa"),
+     *                             @OA\Property(property="candidaciesPreselection", type="integer", description="Nombre total de candidatures déjà évaluées par cet évaluateur", example=3),
+     *                             @OA\Property(property="statusCandidacy", type="boolean", description="Indique si cette candidature a déjà été évaluée", example=false),
+     *                             @OA\Property(property="totalCandidats", type="integer", description="Nombre total de candidatures assignées à cet évaluateur", example=15),
+     *                             @OA\Property(property="periodStatus", type="string", description="Statut actuel de la période", example="PRESELECTION"),
+     *                             @OA\Property(
+     *                                 property="dispatch",
+     *                                 type="array",
+     *                                 @OA\Items(
+     *                                     type="object",
+     *                                     @OA\Property(property="id", type="integer", example=1),
+     *                                     @OA\Property(property="evaluator_id", type="integer", example=5)
+     *                                 )
+     *                             )
+     *                         )
+     *                     ),
+     *                     @OA\Property(property="current_page", type="integer", example=1),
+     *                     @OA\Property(property="last_page", type="integer", example=5),
+     *                     @OA\Property(property="per_page", type="integer", example=10),
+     *                     @OA\Property(property="total", type="integer", example=50)
+     *                 ),
+     *                 @OA\Schema(
+     *                     type="array",
+     *                     description="Cas 2 : Évaluateur assigné - Réponse non paginée (per_page=all)",
+     *                     @OA\Items(
+     *                         type="object",
+     *                         @OA\Property(property="id", type="integer", example=1),
+     *                         @OA\Property(property="etn_nom", type="string", example="MUTOMBO"),
+     *                         @OA\Property(property="etn_prenom", type="string", example="Jean"),
+     *                         @OA\Property(property="etn_postnom", type="string", example="KABONGO"),
+     *                         @OA\Property(property="ville", type="string", example="Kinshasa"),
+     *                         @OA\Property(property="candidaciesPreselection", type="integer", description="Nombre total de candidatures déjà évaluées par cet évaluateur", example=3),
+     *                         @OA\Property(property="statusCandidacy", type="boolean", description="Indique si cette candidature a déjà été évaluée", example=false),
+     *                         @OA\Property(property="totalCandidats", type="integer", description="Nombre total de candidatures assignées à cet évaluateur", example=15),
+     *                         @OA\Property(property="periodStatus", type="string", description="Statut actuel de la période", example="PRESELECTION"),
+     *                         @OA\Property(
+     *                             property="dispatch",
+     *                             type="array",
+     *                             @OA\Items(
+     *                                 type="object",
+     *                                 @OA\Property(property="id", type="integer", example=1),
+     *                                 @OA\Property(property="evaluator_id", type="integer", example=5)
+     *                             )
+     *                         )
+     *                     )
+     *                 ),
+     *                 @OA\Schema(
+     *                     type="object",
+     *                     description="Cas 3 : Évaluateur NON assigné à cette période",
+     *                     @OA\Property(property="success", type="boolean", example=false),
+     *                     @OA\Property(property="message", type="string", example="Vous n'êtes pas assigné comme évaluateur pour cette période."),
+     *                     @OA\Property(property="data", type="array", @OA\Items())
+     *                 )
+     *             }
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur serveur",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Une erreur est survenue lors de la récupération des périodes."),
+     *             @OA\Property(property="error", type="string", example="Error details")
+     *         )
+     *     )
+     * )
+     */
+    public function CandidaciesDispatchByEvaluator(Request $request)
     {
         $periodId = $request->input("periodId");
         $dataEvaluateur = Evaluator::query()

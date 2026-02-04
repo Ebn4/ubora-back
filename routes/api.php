@@ -41,17 +41,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('candidacies', CandidacyController::class)->only(['index', 'destroy', "show"]);
     Route::get('getYearsPeriod', [PeriodController::class, 'getYearsPeriod']);
 
-    Route::get('periods/{id}/candidates/selection',[CandidacyController::class, 'getSelectionCandidates']);
+    Route::get('periods/{periodId}/candidates/selection',[CandidacyController::class, 'getSelectionCandidates']);
     Route::get('candidates/{interviewId}/criterias/{criteriaId}/result', [CandidacyController::class, 'getCandidateSelectionResultByCriteria']);
     Route::get('candidates/{id}/evaluators', [CandidacyController::class, 'getCandidateEvaluators']);
     Route::get('candidates/interviews', [CandidacyController::class, 'getSelectedCandidates']);
-    Route::get('/interviews/{interview}/observation', [CandidacyController::class, 'getInterviewObservation']);
+    Route::get('/interviews/{interviewId}/observation', [CandidacyController::class, 'getInterviewObservation']);
     Route::get('periods/criteria/{id}', [PeriodController::class, 'getCriteriaPeriod']);
     Route::get('/periods/{periodId}/selection-criteria-max-score', [PeriodController::class, 'getSelectionCriteriaMaxScore']);
     Route::get('/candidates/{id}/interviews', [CandidacyController::class, "getCandidateInterview"]);
     Route::get('/candidates/{id}/has-selection', [CandidacyController::class, "candidateHasSelection"]);
     Route::apiResource('period', PeriodController::class);
-    Route::get('/periods/{period}/state', [PeriodController::class, 'getPeriodState']);
+    Route::get('/periods/{periodId}/state', [PeriodController::class, 'getPeriodState']);
 
     Route::get('evaluators/is-selector-evaluator', [EvaluatorController::class, 'isSelectorEvaluator']);
     Route::get('evaluators/is-preselector-evaluator', [EvaluatorController::class, 'isPreselectorEvaluator']);
@@ -70,8 +70,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('periods/{period}/criteria', [PeriodController::class, 'getCriteriaPeriod']);
         Route::put('periods/{period}/status', [PeriodController::class, 'changePeriodStatus']);
 
-        Route::get('preselection/periods/{period}/validate', [PreselectionController::class, 'canValidatePreselection']);
-        Route::post('preselection/periods/{period}/validate', [PreselectionController::class, 'validatePreselection']);
+        Route::get('preselection/periods/{periodId}/validate', [PreselectionController::class, 'canValidatePreselection']);
+        Route::post('preselection/periods/{periodId}/validate', [PreselectionController::class, 'validatePreselection']);
 
         Route::get('evaluators/{period}/is-dispatched', [DispatchController::class, 'hasEvaluatorBeenDispatched']);
         Route::post("evaluators/{period}/dispatch", [DispatchController::class, 'dispatchPreselection']);

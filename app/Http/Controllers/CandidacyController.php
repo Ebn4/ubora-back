@@ -620,6 +620,87 @@ class CandidacyController extends Controller
     }
 
 
+    /**
+     * @OA\Get(
+     *     path="/api/candidacies",
+     *     summary="Lister toutes les candidatures autorisées",
+     *     description="Récupère la liste paginée des candidatures autorisées (is_allowed = true) avec des options de filtrage.
+     *         - Filtre par recherche sur nom, prénom, postnom ou ville
+     *         - Filtre par ville spécifique
+     *         - Filtre par période (optionnel, fallback sur période actuelle ou plus récente)
+     *         - Supporte la pagination ou le retour de tous les résultats",
+     *     tags={"Candidatures"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="search",
+     *         in="query",
+     *         description="Terme de recherche pour filtrer par nom, prénom, postnom ou ville",
+     *         required=false,
+     *         @OA\Schema(type="string", example="Kinshasa")
+     *     ),
+     *     @OA\Parameter(
+     *         name="ville",
+     *         in="query",
+     *         description="Filtrer les candidatures par ville spécifique",
+     *         required=false,
+     *         @OA\Schema(type="string", example="Kinshasa")
+     *     ),
+     *     @OA\Parameter(
+     *         name="periodId",
+     *         in="query",
+     *         description="ID de la période pour filtrer les candidatures (optionnel).
+     *             Si non fourni : utilise la période de l'année en cours, sinon la plus récente.",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=34)
+     *     ),
+     *     @OA\Parameter(
+     *         name="per_page",
+     *         in="query",
+     *         description="Nombre de résultats par page. Utilisez 'all' pour récupérer tous les résultats sans pagination.",
+     *         required=false,
+     *         @OA\Schema(
+     *             oneOf={
+     *                 @OA\Schema(type="integer", minimum=1, maximum=100, example=5),
+     *                 @OA\Schema(type="string", enum={"all"}, example="all")
+     *             },
+     *             default=5
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Liste des candidatures récupérée avec succès",
+     *         @OA\JsonContent(
+     *             oneOf={
+     *                 @OA\Schema(
+     *                     type="object",
+     *                     description="Réponse paginée (per_page est un nombre)",
+     *                     @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/CandidacyResource")),
+     *                     @OA\Property(property="current_page", type="integer", example=1),
+     *                     @OA\Property(property="last_page", type="integer", example=10),
+     *                     @OA\Property(property="per_page", type="integer", example=5),
+     *                     @OA\Property(property="total", type="integer", example=50),
+     *                     @OA\Property(property="from", type="integer", example=1),
+     *                     @OA\Property(property="to", type="integer", example=5)
+     *                 ),
+     *                 @OA\Schema(
+     *                     type="array",
+     *                     description="Réponse non paginée (per_page=all)",
+     *                     @OA\Items(ref="#/components/schemas/CandidacyResource")
+     *                 )
+     *             }
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur serveur interne",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="code", type="integer", example=500),
+     *             @OA\Property(property="description", type="string", example="Erreur interne du serveur"),
+     *             @OA\Property(property="message", type="string", example="Erreur interne du serveur")
+     *         )
+     *     )
+     * )
+     */
     public function index(Request $request)
     {
         try {
@@ -788,11 +869,45 @@ class CandidacyController extends Controller
         }
     }
 
-    public function show(Request $request, int $id): CandidacyResource
+    /**
+     * @OA\Get(
+     *     path="/api/candidacies/{id}",
+     *     summary="Afficher une candidature spécifique",
+     *     description="Récupère les détails d'une candidature spécifique par son ID.
+     *         - Inclut toutes les informations de la candidature",
+     *     tags={"Candidatures"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         description="ID de la candidature",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=11245)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Candidature récupérée avec succès",
+     *         @OA\JsonContent(ref="#/components/schemas/CandidacyResource")
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Candidature non trouvée",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Not Found")
+     *         )
+     *     )
+     * )
+     */
+    public function show(Request $request, int $id)
     {
         $evaluator_id = (int)$request->get('evaluator_id');
         $candidacy = Candidacy::query()
-            ->findOrFail($id);
+            ->find($id);
+        if(!$candidacy){
+            return response()->json([
+                "message" => "Candidat non trouvé",
+            ],404);
+        }
         return new CandidacyResource($candidacy, $evaluator_id);
     }
 
@@ -891,7 +1006,6 @@ class CandidacyController extends Controller
             ], 500);
         }
     }
-
 
     public function getPreselectedCandidacies(Request $r)
     {
@@ -1180,6 +1294,42 @@ class CandidacyController extends Controller
         }
     }
 
+
+    /**
+     * @OA\Get(
+     *     path="/api/interviews/{interviewId}/observation",
+     *     summary="Récupérer l'observation d'un entretien",
+     *     description="Récupère l'observation textuelle associée à un entretien spécifique par son ID.",
+     *     tags={"Candidatures"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="interviewId",
+     *         in="path",
+     *         description="ID de l'entretien",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Observation récupérée avec succès",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="observation", type="string", nullable=true, example="Le candidat a démontré d'excellentes compétences en communication et une forte motivation pour le programme Ubora.")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Entretien non trouvé",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="errors", type="array",
+     *                 @OA\Items(type="string", example="Entretien non trouvé")
+     *             )
+     *         )
+     *     )
+     * )
+     */
     public function getInterviewObservation($interviewId)
     {
         try {
@@ -1250,6 +1400,39 @@ class CandidacyController extends Controller
         return new InterviewResource($interview);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/candidates/{id}/has-selection",
+     *     summary="Vérifier si un candidat a des résultats de sélection",
+     *     description="Vérifie si un candidat spécifique a des résultats de sélection associés (après entretien).
+     *         - Retourne true si le candidat a au moins un résultat de sélection
+     *         - Retourne false si le candidat n'a aucun résultat de sélection ou si l'entretien n'existe pas",
+     *     tags={"Candidatures"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         description="ID du candidat",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=11245)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Vérification effectuée avec succès",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="hasSelection", type="boolean", example=true, description="true si le candidat a des résultats de sélection, false sinon")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Candidat non trouvé",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Not Found")
+     *         )
+     *     )
+     * )
+     */
     public function candidateHasSelection(int $id): \Illuminate\Http\JsonResponse
     {
         $hasSelection = Interview::query()
@@ -1313,6 +1496,83 @@ class CandidacyController extends Controller
         return EvaluatorRessource::collection($evaluators);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/candidates/interviews",
+     *     summary="Récupérer les candidats sélectionnés pour les entretiens",
+     *     description="Récupère la liste paginée des candidats qui ont été sélectionnés pour les entretiens (candidats ayant au moins un entretien).
+     *         - Si periodId est fourni : filtre par cette période spécifique
+     *         - Si periodId n'est pas fourni : utilise la logique automatique (période actuelle)
+     *         - Filtre par recherche sur nom, prénom ou postnom
+     *         - Supporte la pagination ou le retour de tous les résultats",
+     *     tags={"Candidatures"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="periodId",
+     *         in="query",
+     *         description="ID de la période pour filtrer les candidats sélectionnés si la periodeId n'est pas renseigné la derniere période est pris en compte",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=34)
+     *     ),
+     *     @OA\Parameter(
+     *         name="per_page",
+     *         in="query",
+     *         description="Nombre de résultats par page. Utilisez 'all' pour récupérer tous les résultats sans pagination.",
+     *         required=false,
+     *         @OA\Schema(
+     *             oneOf={
+     *                 @OA\Schema(type="integer", minimum=1, maximum=100, example=10),
+     *                 @OA\Schema(type="string", enum={"all"}, example="all")
+     *             },
+     *             default=10
+     *         )
+     *     ),
+     *     @OA\Parameter(
+     *         name="search",
+     *         in="query",
+     *         description="Terme de recherche pour filtrer par nom, prénom ou postnom du candidat",
+     *         required=false,
+     *         @OA\Schema(type="string", example="Ubora")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Succès - Liste des candidats sélectionnés OU collection vide",
+     *         @OA\JsonContent(
+     *             oneOf={
+     *                 @OA\Schema(
+     *                     type="object",
+     *                     description="Cas 1 : Candidats trouvés",
+     *                     @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/CandidacyResource")),
+     *                     @OA\Property(property="current_page", type="integer", example=1),
+     *                     @OA\Property(property="last_page", type="integer", example=5),
+     *                     @OA\Property(property="per_page", type="integer", example=10),
+     *                     @OA\Property(property="total", type="integer", example=47),
+     *                     @OA\Property(property="from", type="integer", example=1),
+     *                     @OA\Property(property="to", type="integer", example=10)
+     *                 ),
+     *                 @OA\Schema(
+     *                     type="object",
+     *                     description="Cas 2 : Aucune période trouvée ou aucun candidat sélectionné (collection vide)",
+     *                     @OA\Property(property="data", type="array", @OA\Items(), example={}),
+     *                     @OA\Property(property="current_page", type="integer", example=1),
+     *                     @OA\Property(property="last_page", type="integer", example=0),
+     *                     @OA\Property(property="per_page", type="integer", example=10),
+     *                     @OA\Property(property="total", type="integer", example=0),
+     *                     @OA\Property(property="from", type="integer", example=0),
+     *                     @OA\Property(property="to", type="integer", example=0)
+     *                 )
+     *             }
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur serveur interne",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Server Error")
+     *         )
+     *     )
+     * )
+     */
     public function getSelectedCandidates(Request $request): AnonymousResourceCollection
     {
         try {
@@ -1427,6 +1687,76 @@ class CandidacyController extends Controller
         return null;
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/periods/{periodId}/candidates/selection",
+     *     summary="Récupérer les candidats ayant des résultats de sélection",
+     *     description="Récupère la liste paginée des candidats qui ont des résultats de sélection (après entretien) pour une période spécifique.
+     *         - Filtre uniquement les candidats ayant au moins un résultat de sélection
+     *         - Calcule automatiquement la moyenne des résultats de sélection (selectionMean) pour chaque candidat
+     *         - Supporte la recherche par nom et la pagination ou le retour de tous les résultats",
+     *     tags={"Candidatures"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="periodId",
+     *         in="path",
+     *         description="ID de la période",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=34)
+     *     ),
+     *     @OA\Parameter(
+     *         name="per_page",
+     *         in="query",
+     *         description="Nombre de résultats par page. Utilisez 'all' pour récupérer tous les résultats sans pagination.",
+     *         required=false,
+     *         @OA\Schema(
+     *             oneOf={
+     *                 @OA\Schema(type="integer", minimum=1, maximum=100, example=10),
+     *                 @OA\Schema(type="string", enum={"all"}, example="all")
+     *             },
+     *             default=10
+     *         )
+     *     ),
+     *     @OA\Parameter(
+     *         name="search",
+     *         in="query",
+     *         description="Terme de recherche pour filtrer par nom du candidat",
+     *         required=false,
+     *         @OA\Schema(type="string", example="Ngimbi")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Liste des candidats avec résultats de sélection récupérée avec succès",
+     *         @OA\JsonContent(
+     *             oneOf={
+     *                 @OA\Schema(
+     *                     type="object",
+     *                     description="Réponse paginée (per_page est un nombre)",
+     *                     @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/CandidacyResource")),
+     *                     @OA\Property(property="current_page", type="integer", example=1),
+     *                     @OA\Property(property="last_page", type="integer", example=3),
+     *                     @OA\Property(property="per_page", type="integer", example=10),
+     *                     @OA\Property(property="total", type="integer", example=25),
+     *                     @OA\Property(property="from", type="integer", example=1),
+     *                     @OA\Property(property="to", type="integer", example=10)
+     *                 ),
+     *                 @OA\Schema(
+     *                     type="array",
+     *                     description="Réponse non paginée (per_page=all)",
+     *                     @OA\Items(ref="#/components/schemas/CandidacyResource")
+     *                 )
+     *             }
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Période non trouvée",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Not Found")
+     *         )
+     *     )
+     * )
+     */
     public function getSelectionCandidates(Request $request, int $periodId): AnonymousResourceCollection
     {
         $perPage = 10;
@@ -1486,11 +1816,68 @@ class CandidacyController extends Controller
         }
     }
 
-    public function getCandidateSelectionResultByCriteria(int $id, int $criterionId): SelectionResultResource
+
+    /**
+     * @OA\Get(
+     *     path="/api/candidates/{interviewId}/criterias/{criteriaId}/result",
+     *     summary="Récupérer le résultat de sélection d'un candidat pour un critère spécifique",
+     *     description="Récupère le résultat d'évaluation d'un candidat pour un critère spécifique lors d'un entretien.
+     *         - Retourne le résultat si trouvé (score, commentaires, etc.)
+     *         - Retourne une ressource vide si aucun résultat n'existe pour ce couple entretien/critère",
+     *     tags={"Candidatures"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="interviewId",
+     *         in="path",
+     *         description="ID de l'entretien",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Parameter(
+     *         name="criteriaId",
+     *         in="path",
+     *         description="ID du critère d'évaluation",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=5)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Résultat récupéré avec succès (trouvé ou non trouvé)",
+     *         @OA\JsonContent(
+     *             oneOf={
+     *                 @OA\Schema(
+     *                     type="object",
+     *                     description="Cas 1 : Résultat trouvé",
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="interview_id", type="integer", example=1),
+     *                     @OA\Property(property="criteria_id", type="integer", example=5),
+     *                     @OA\Property(property="result", type="number", example=85.5, description="Score obtenu pour ce critère"),
+     *                     @OA\Property(property="comment", type="string", nullable=true, example="Excellente performance sur ce critère"),
+     *                     @OA\Property(property="created_at", type="string", format="date-time", example="2026-02-05T10:30:00Z"),
+     *                     @OA\Property(property="updated_at", type="string", format="date-time", example="2026-02-05T10:30:00Z")
+     *                 ),
+     *                 @OA\Schema(
+     *                     type="object",
+     *                     description="Cas 2 : Aucun résultat trouvé pour ce couple entretien/critère",
+     *                     @OA\Property(property="data", type="null", example=null)
+     *                 )
+     *             }
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Erreur lors de la récupération du résultat",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="errors", type="string", example="Error message")
+     *         )
+     *     )
+     * )
+     */
+    public function getCandidateSelectionResultByCriteria(int $interviewId, int $criterionId): SelectionResultResource
     {
         try {
             $result = SelectionResult::query()
-                ->where('interview_id', $id)
+                ->where('interview_id', $interviewId)
                 ->where('criteria_id', $criterionId)
                 ->first();
 
@@ -1506,6 +1893,74 @@ class CandidacyController extends Controller
         }
     }
 
+
+    /**
+     * @OA\Post(
+     *     path="/api/upload-documents",
+     *     summary="Uploader et extraire un fichier ZIP",
+     *     description="Upload et extraction automatique d'un fichier ZIP contenant des documents.
+     *         - Le fichier ZIP est stocké dans le dossier 'documents'
+     *         - Les fichiers sont extraits et renommés avec des noms normalisés
+     *         - Les dossiers sont créés automatiquement si nécessaire
+     *         - Format requis : ZIP uniquement",
+     *     tags={"Documents"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         description="Fichier ZIP à uploader",
+     *         @OA\MediaType(
+     *             mediaType="multipart/form-data",
+     *             @OA\Schema(
+     *                 required={"zip_file"},
+     *                 @OA\Property(
+     *                     property="zip_file",
+     *                     type="string",
+     *                     format="binary",
+     *                     description="Fichier ZIP contenant les documents à uploader (max 10MB)"
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Fichier ZIP uploadé et extrait avec succès",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Fichier ZIP téléchargé et extrait avec succès.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Erreur de validation du fichier",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="errors", type="object",
+     *                 @OA\Property(property="zip_file", type="array",
+     *                     @OA\Items(
+     *                         oneOf={
+     *                             @OA\Schema(type="string", example="The ZIP file size must not exceed 10MB."),
+     *                             @OA\Schema(type="string", example="The file must be a valid ZIP archive."),
+     *                             @OA\Schema(type="string", example="Please select a ZIP file to upload.")
+     *                         }
+     *                     )
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Erreur lors du traitement du fichier",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="errors", type="string", example="Invalid ZIP file format")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur serveur interne",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="errors", type="string", example="Error message")
+     *         )
+     *     )
+     * )
+     */
     public function uploadZipFile(Request $request)
     {
         // Log the incoming request for debugging
@@ -1526,30 +1981,6 @@ class CandidacyController extends Controller
         // Check if we can handle the file size
         $contentLength = $request->header('Content-Length') ? (int)$request->header('Content-Length') : 0;
         $uploadMaxSize = $this->parseSize(ini_get('upload_max_filesize'));
-
-        // if ($contentLength > $uploadMaxSize) {
-        //     Log::error('ZIP file upload failed: File too large for current PHP settings', [
-        //         'content_length' => $contentLength,
-        //         'upload_max_filesize' => ini_get('upload_max_filesize'),
-        //         'post_max_size' => ini_get('post_max_size')
-        //     ]);
-
-        //     return response()->json([
-        //         'errors' => [
-        //             'zip_file' => [
-        //                 'File size (' . round($contentLength / 1024 / 1024, 2) . 'MB) exceeds server limit (' . ini_get('upload_max_filesize') . '). ' .
-        //                 'Please contact administrator to increase upload limits or compress your file.'
-        //             ]
-        //         ],
-        //         'message' => 'File upload failed due to server configuration limits.',
-        //         'server_limits' => [
-        //             'upload_max_filesize' => ini_get('upload_max_filesize'),
-        //             'post_max_size' => ini_get('post_max_size'),
-        //             'content_length' => $contentLength,
-        //             'file_size_mb' => round($contentLength / 1024 / 1024, 2)
-        //         ]
-        //     ], 422);
-        // }
 
         try {
             // Validate the request with more specific rules
