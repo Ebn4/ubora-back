@@ -1,17 +1,23 @@
 {
-    "apps": [{
-        "name": "ubora-assessments-backend",
-        "script": "artisan",
-        "args": ["serve", "--host=0.0.0.0", "--port=8037" ],
-        "instances": "1",
-        "wait_ready": true,
-        "autorestart": true,
-        "interpreter" : "php",
-        "watch": false,
-        "error_file": null,
-        "out_file": null,
-        "log_file": null,
-        "time": true  
-        
-    }]
+  "apps": [
+    {
+      "name": "ubora-backend",
+      "script": "artisan",
+      "args": ["serve", "--host=0.0.0.0", "--port=8000"],
+      "instances": 1,
+      "autorestart": true,
+      "interpreter": "php",
+      "watch": false,
+      "env": {
+        "APP_ENV": "local",
+        "APP_DEBUG": "true",
+        "APP_URL": "http://localhost"
+      },
+      "env_production": {
+        "APP_ENV": "production",
+        "APP_DEBUG": "false",
+        "APP_URL": "https://XXXXXXX"
+      }
+    }
+  ]
 }
