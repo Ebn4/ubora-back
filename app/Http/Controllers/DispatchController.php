@@ -214,9 +214,15 @@ class DispatchController extends Controller
         Log::info("periodId reçu : " . $request->post('periodId'));
         
         Log::info("le statut de la periode : $period->status");
-        if ($period->status !== PeriodStatusEnum::STATUS_DISPATCH->value) {
-            return response()->json(['error' => 'Impossible d’envoyer les notifications : le dispatch n’est pas actif.'], 400);
+        if (
+            $period->status !== PeriodStatusEnum::STATUS_DISPATCH->value
+            && $period->status !== PeriodStatusEnum::STATUS_PRESELECTION->value
+        ) {
+            return response()->json([
+                'error' => 'Impossible d’envoyer les notifications : le dispatch ou la présélection doivent être actifs.'
+            ], 400);
         }
+
 
         // Vérifier qu’il y a bien des dispatchs
         $dispatches = DB::table('dispatch_preselections')
