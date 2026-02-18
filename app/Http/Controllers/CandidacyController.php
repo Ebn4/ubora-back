@@ -35,6 +35,7 @@ class CandidacyController extends Controller
      *     summary="Enregistrement en batch des données des formulaires",
      *     operationId="uploadForms",
      *     tags={"Candidatures"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\RequestBody(
      *         description="Cette interface d'API permet l'enregistrement en batch des données issues des formulaires, collectées dans un fichier CSV.",
      *         required=true,

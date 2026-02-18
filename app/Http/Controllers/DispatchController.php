@@ -383,42 +383,44 @@ class DispatchController extends Controller
     public function CandidaciesDispatchByEvaluator(Request $request)
     {
         $periodId = $request->input("periodId");
+
         $dataEvaluateur = Evaluator::query()
-            ->where("user_id", auth()->user()->id)
+            ->where("user_id", auth()->id())
             ->where("type", EvaluatorTypeEnum::EVALUATOR_PRESELECTION->value)
             ->where("period_id", $periodId)
             ->first();
+
         if (!$dataEvaluateur) {
             return response()->json([
                 'success' => false,
                 'message' => 'Vous n\'êtes pas assigné comme évaluateur pour cette période.',
-                'data' => [] // Liste vide pour éviter les erreurs côté frontend
+                'data' => []
             ], 200);
         }
-        $evaluateurId = $dataEvaluateur?->id;
 
-        $query = Candidacy::with(['dispatch' => function ($query) use ($evaluateurId) {
-            $query->where('evaluator_id', $evaluateurId)->limit(1);
+        $evaluateurId = $dataEvaluateur->id;
+
+        $query = Candidacy::with(['dispatch' => function ($q) use ($evaluateurId) {
+            $q->where('evaluator_id', $evaluateurId);
         }])
-            ->where("period_id", $periodId)
-            ->whereHas("dispatch", function ($q) use ($evaluateurId) {
-                $q->where("evaluator_id", $evaluateurId);
-            });
+        ->where("period_id", $periodId)
+        ->whereHas("dispatch", function ($q) use ($evaluateurId) {
+            $q->where("evaluator_id", $evaluateurId);
+        });
 
-        if ($request->has('search') && $request->input('search') != null) {
-            $search = $request->input('search');
-
-            $query = $query->where(function ($q) use ($search) {
+        // Recherche
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
                 $q->where('etn_nom', 'like', "%$search%")
-                    ->orWhere('etn_prenom', 'like', "%$search%")
-                    ->orWhere('etn_postnom', 'like', "%$search%")
-                    ->orWhere('ville', 'like', "%$search%");
+                ->orWhere('etn_prenom', 'like', "%$search%")
+                ->orWhere('etn_postnom', 'like', "%$search%")
+                ->orWhere('ville', 'like', "%$search%");
             });
         }
 
-        if ($request->has('ville') && $request->input('ville') != null) {
-            $ville = $request->input('ville');
-            $query = $query->where('ville', 'LIKE', "%{$ville}%");
+        // Filtre ville
+        if ($ville = $request->input('ville')) {
+            $query->where('ville', 'like', "%$ville%");
         }
 
         $candidaciesPreselection = DispatchPreselection::where('evaluator_id', $evaluateurId)
@@ -430,23 +432,21 @@ class DispatchController extends Controller
             ->value("status");
 
         $count = $query->count();
-
         $perPage = $request->input('per_page', 5);
 
         // Gestion du cas "all"
         if ($perPage === 'all') {
-            // Récupérer tous les résultats sans pagination
             $results = $query->get();
 
-            // Appliquer la même transformation
             $results->transform(function ($item) use ($candidaciesPreselection, $count, $evaluateurId, $periodStatus) {
-                $statusCandidacy = DispatchPreselection::where('candidacy_id', $item->id)
+                $item->dispatch = $item->dispatch->first(); // garder seulement le premier dispatch
+
+                $item->statusCandidacy = DispatchPreselection::where('candidacy_id', $item->id)
                     ->where('evaluator_id', $evaluateurId)
                     ->has('preselections')
                     ->exists();
 
                 $item->candidaciesPreselection = $candidaciesPreselection;
-                $item->statusCandidacy = $statusCandidacy;
                 $item->totalCandidats = $count;
                 $item->periodStatus = $periodStatus;
 
@@ -454,35 +454,29 @@ class DispatchController extends Controller
             });
 
             return $results;
-        } else {
-            // Pagination normale (code original inchangé)
-            $paginated = $query->paginate($perPage);
-
-            try {
-                $paginated->getCollection()->transform(function ($item) use ($candidaciesPreselection, $count, $evaluateurId, $periodStatus) {
-                    $statusCandidacy = DispatchPreselection::where('candidacy_id', $item->id)
-                        ->where('evaluator_id', $evaluateurId)
-                        ->has('preselections')
-                        ->exists();
-
-                    $item->candidaciesPreselection = $candidaciesPreselection;
-                    $item->statusCandidacy = $statusCandidacy;
-                    $item->totalCandidats = $count;
-                    $item->periodStatus = $periodStatus;
-
-                    return $item;
-                });
-
-                return $paginated;
-            } catch (\Exception $e) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Une erreur est survenue lors de la récupération des périodes.',
-                    'error' => $e->getMessage()
-                ], 500);
-            }
         }
+
+        // Pagination classique
+        $paginated = $query->paginate($perPage);
+
+        $paginated->getCollection()->transform(function ($item) use ($candidaciesPreselection, $count, $evaluateurId, $periodStatus) {
+            $item->dispatch = $item->dispatch->first();
+
+            $item->statusCandidacy = DispatchPreselection::where('candidacy_id', $item->id)
+                ->where('evaluator_id', $evaluateurId)
+                ->has('preselections')
+                ->exists();
+
+            $item->candidaciesPreselection = $candidaciesPreselection;
+            $item->totalCandidats = $count;
+            $item->periodStatus = $periodStatus;
+
+            return $item;
+        });
+
+        return $paginated;
     }
+
 
 
     public function sendDispatchNotification()
