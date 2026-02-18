@@ -22,6 +22,7 @@ Route::post('/users/admin', [UserController::class, 'createAdminUser']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [UserController::class, 'show']);
+    Route::post('/user/toggle-role', [UserController::class, 'toggleRole']);
 
     Route::get('has-admin-role', HasAdminRoleController::class);
 

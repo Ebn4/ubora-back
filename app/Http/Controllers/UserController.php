@@ -224,4 +224,63 @@ class UserController extends Controller
 
         return new UserResource($user);
     }
+
+    /**
+     * @OA\Post(
+     *     path="/api/user/toggle-role",
+     *     summary="Toggle role of the authenticated user",
+     *     description="Permet à l'utilisateur connecté de basculer son rôle entre 'admin' et 'evaluator'.",
+     *     operationId="toggleUserRole",
+     *     tags={"Utilisateurs"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Role changé avec succès",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Role changé avec succès"),
+     *             @OA\Property(
+     *                 property="user",
+     *                 type="object",
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="name", type="string", example="John Doe"),
+     *                 @OA\Property(property="email", type="string", example="john@example.com"),
+     *                 @OA\Property(property="role", type="string", example="admin")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Utilisateur non authentifié",
+     *         @OA\JsonContent(@OA\Property(property="message", type="string", example="Utilisateur non authentifié"))
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Role non pris en charge",
+     *         @OA\JsonContent(@OA\Property(property="message", type="string", example="Role non pris en charge"))
+     *     )
+     * )
+     */
+    public function toggleRole()
+    {
+        $user = auth()->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Utilisateur non authentifié'], 401);
+        }
+
+        if ($user->role === 'ADMIN') {
+            $user->role = 'EVALUATOR';
+        } elseif ($user->role === 'EVALUATOR') {
+            $user->role = 'ADMIN';
+        } else {
+            return response()->json(['message' => 'Role non pris en charge'], 400);
+        }
+
+        $user->save();
+
+        return response()->json([
+            'message' => 'Role changé avec succès',
+            'user' => new UserResource($user)
+        ]);
+    }
 }
