@@ -651,8 +651,49 @@ class EvaluatorController extends Controller
     }
 
     /**
-     * Récupère toutes les périodes où l'utilisateur est évaluateur
-     * (Pour le sélecteur de période dans le frontend)
+     * @OA\Get(
+     *     path="/api/evaluator/periods",
+     *     summary="Récupère les périodes assignées à l'évaluateur connecté",
+     *     description="Cette API retourne toutes les périodes pour lesquelles l'utilisateur connecté est évaluateur, triées par année décroissante.",
+     *     operationId="getEvaluatorPeriods",
+     *     tags={"Évaluateurs"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Liste des périodes récupérée avec succès",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(
+     *                 property="periods",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="year", type="integer", example=2026),
+     *                     @OA\Property(property="status", type="string", example="active"),
+     *                     @OA\Property(property="created_at", type="string", format="date-time", example="2026-02-19T10:15:30Z")
+     *                 )
+     *             ),
+     *             @OA\Property(property="count", type="integer", example=3)
+     *         )
+     *     ),
+     * 
+     *     @OA\Response(
+     *          response=401,
+     *          description="Non authentifié"
+     *      ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur serveur",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="periods", type="array", @OA\Items()),
+     *             @OA\Property(property="message", type="string", example="Une erreur est survenue")
+     *         )
+     *     )
+     * )
      */
     public function getEvaluatorPeriods(Request $request): JsonResponse
     {
@@ -663,7 +704,7 @@ class EvaluatorController extends Controller
                 $query->where('user_id', $userId);
             })
             ->orderBy('year', 'desc')
-            ->get(['id', 'year', 'name', 'status', 'created_at']);
+            ->get(['id', 'year','status', 'created_at']);
 
             return response()->json([
                 "success" => true,

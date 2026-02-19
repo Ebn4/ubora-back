@@ -56,6 +56,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('evaluators/is-selector-evaluator', [EvaluatorController::class, 'isSelectorEvaluator']);
     Route::get('evaluators/is-preselector-evaluator', [EvaluatorController::class, 'isPreselectorEvaluator']);
+    Route::get('evaluator/periods',[EvaluatorController::class,'getEvaluatorPeriods']);
 
     Route::middleware("admin")->group(function () {
 

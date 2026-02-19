@@ -4198,6 +4198,95 @@
                 ]
             }
         },
+        "/api/evaluator/periods": {
+            "get": {
+                "tags": [
+                    "Évaluateurs"
+                ],
+                "summary": "Récupère les périodes assignées à l'évaluateur connecté",
+                "description": "Cette API retourne toutes les périodes pour lesquelles l'utilisateur connecté est évaluateur, triées par année décroissante.",
+                "operationId": "getEvaluatorPeriods",
+                "responses": {
+                    "200": {
+                        "description": "Liste des périodes récupérée avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "periods": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "year": {
+                                                        "type": "integer",
+                                                        "example": 2026
+                                                    },
+                                                    "status": {
+                                                        "type": "string",
+                                                        "example": "active"
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2026-02-19T10:15:30Z"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "count": {
+                                            "type": "integer",
+                                            "example": 3
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    },
+                    "500": {
+                        "description": "Erreur serveur",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "periods": {
+                                            "type": "array",
+                                            "items": {}
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Une erreur est survenue"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/users/ldap/{user}": {
             "get": {
                 "tags": [
