@@ -208,7 +208,7 @@ class UserLdapServiceImpl implements \App\Services\UserLdapService
             // Succès : retourner transaction_id pour l’étape suivante
             return [
                 'success' => true,
-                'message' => 'Un code de vérification a été envoyé à votre ' . ($channel === 'phone' ? 'téléphone' : 'adresse e-mail') . '.',
+                'message' => 'Un code de verification a ete envoye a votre ' . ($channel === 'phone' ? 'telephone' : 'adresse e-mail') . '.',
                 'transaction_id' => $transactionId,
                 'channel' => $channel,
                 'reference_masked' => $reference
